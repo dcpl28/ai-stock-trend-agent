@@ -7,12 +7,10 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  ReferenceLine,
   Cell
 } from 'recharts';
 import { CandleData, CandlestickShape } from "@/lib/stockData";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface StockChartProps {
   data: CandleData[];
@@ -24,62 +22,59 @@ export function StockChart({ data, symbol }: StockChartProps) {
   const domainMax = useMemo(() => Math.max(...data.map(d => d.high)) * 1.01, [data]);
 
   return (
-    <Card className="w-full bg-card/50 backdrop-blur-sm border-border">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div className="space-y-1">
-          <CardTitle className="text-xl font-mono tracking-tight text-primary">
-            {symbol} / USD
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">Daily Candlestick Chart</p>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="outline" className="font-mono text-xs">1D</Badge>
-          <Badge variant="secondary" className="font-mono text-xs">MA20</Badge>
-          <Badge variant="secondary" className="font-mono text-xs">VOL</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="h-[400px] w-full pt-4">
+    <Card className="w-full bg-transparent border-none shadow-none">
+      <CardContent className="h-[450px] w-full p-0">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={data}
             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.3} vertical={false} />
+            {/* Elegant, subtle grid */}
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--primary))" opacity={0.1} vertical={false} />
+            
             <XAxis 
               dataKey="time" 
-              tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }} 
-              axisLine={false}
+              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))', fontFamily: 'var(--font-sans)' }} 
+              axisLine={{ stroke: 'hsl(var(--primary))', opacity: 0.1 }}
               tickLine={false}
-              minTickGap={30}
+              minTickGap={40}
+              dy={10}
             />
+            
             <YAxis 
               domain={[domainMin, domainMax]} 
               orientation="right"
-              tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }}
+              tick={{ fontSize: 11, fill: 'hsl(var(--primary))', fontFamily: 'var(--font-mono)' }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(value) => value.toFixed(2)}
+              dx={10}
             />
+            
             <Tooltip 
+              cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, opacity: 0.3, strokeDasharray: '4 4' }}
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
                   const d = payload[0].payload;
+                  const isUp = d.close > d.open;
                   return (
-                    <div className="bg-popover border border-border p-3 rounded shadow-xl">
-                      <p className="text-xs text-muted-foreground mb-2 font-mono">{label}</p>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm font-mono">
-                        <span className="text-muted-foreground">Open:</span>
+                    <div className="bg-card/95 backdrop-blur-xl border border-primary/20 p-4 rounded-lg shadow-2xl">
+                      <p className="text-xs text-muted-foreground mb-3 font-sans tracking-widest uppercase border-b border-white/5 pb-2">{label}</p>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono">
+                        <span className="text-muted-foreground">Open</span>
                         <span className="text-right text-foreground">{d.open.toFixed(2)}</span>
-                        <span className="text-muted-foreground">High:</span>
+                        <span className="text-muted-foreground">High</span>
                         <span className="text-right text-foreground">{d.high.toFixed(2)}</span>
-                        <span className="text-muted-foreground">Low:</span>
+                        <span className="text-muted-foreground">Low</span>
                         <span className="text-right text-foreground">{d.low.toFixed(2)}</span>
-                        <span className="text-muted-foreground">Close:</span>
-                        <span className={d.close > d.open ? "text-right text-[hsl(var(--chart-bullish))]" : "text-right text-[hsl(var(--chart-bearish))]"}>
+                        <span className="text-muted-foreground">Close</span>
+                        <span className={`text-right ${isUp ? "text-[hsl(var(--chart-bullish))]" : "text-[hsl(var(--chart-bearish))]"}`}>
                           {d.close.toFixed(2)}
                         </span>
-                        <span className="text-muted-foreground mt-2">Vol:</span>
-                        <span className="text-right text-foreground mt-2">{(d.volume / 1000).toFixed(1)}K</span>
+                        <div className="col-span-2 pt-2 mt-1 border-t border-white/5 flex justify-between">
+                          <span className="text-muted-foreground text-xs">Vol</span>
+                          <span className="text-primary/80">{(d.volume / 1000).toFixed(1)}K</span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -87,15 +82,20 @@ export function StockChart({ data, symbol }: StockChartProps) {
                 return null;
               }}
             />
-            {/* The Invisible Bar that drives the custom shape */}
+            
             <Bar 
               dataKey="close" 
               shape={<CandlestickShape />} 
-              isAnimationActive={false}
+              isAnimationActive={true}
+              animationDuration={1500}
             >
               {
                 data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.close > entry.open ? 'var(--color-chart-bullish)' : 'var(--color-chart-bearish)'} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.close > entry.open ? 'hsl(var(--chart-bullish))' : 'hsl(var(--chart-bearish))'} 
+                    stroke={entry.close > entry.open ? 'hsl(var(--chart-bullish))' : 'hsl(var(--chart-bearish))'}
+                  />
                 ))
               }
             </Bar>

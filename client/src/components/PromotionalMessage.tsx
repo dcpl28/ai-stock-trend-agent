@@ -1,47 +1,58 @@
 import React from 'react';
-import { Card } from "@/components/ui/card";
-import { ExternalLink, TrendingUp, Briefcase } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExternalLink, TrendingUp, Briefcase, Lock, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function PromotionalMessage() {
   return (
-    <Card className="mt-6 border-l-4 border-l-primary bg-secondary/30 p-4 relative overflow-hidden group">
-      <div className="absolute top-0 right-0 p-4 opacity-10">
-        <TrendingUp className="w-24 h-24" />
-      </div>
+    <Card className="glass-panel overflow-hidden relative border-primary/30 shadow-2xl shadow-primary/5">
+      {/* Decorative Gold Sheen */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
       
-      <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-            🚀 M+ Global Exclusive Access
+      <div className="p-6 relative z-10 space-y-6">
+        <div className="space-y-2 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] uppercase tracking-widest font-semibold mb-2">
+            <Star className="w-3 h-3 fill-primary" /> Invitation Only
+          </div>
+          <h3 className="text-2xl font-serif text-foreground">
+            M+ Global <span className="text-primary italic">Privilege</span>
           </h3>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Unlock premium market insights and lower brokerage fees. Sign up for the 
-            <span className="font-bold text-foreground mx-1">M+ Global App</span> 
-            using my Invitation Code:
+          <p className="text-sm text-muted-foreground font-light leading-relaxed">
+            Elevate your trading experience. Join my exclusive circle of clients for priority insights and lower brokerage fees.
           </p>
-          <div className="flex items-center gap-3">
-            <code className="bg-primary/20 text-primary px-3 py-1 rounded-md font-mono font-bold text-lg border border-primary/30">
-              UBZQ
-            </code>
-            <span className="text-sm text-muted-foreground">
-              to enjoy my privilege remisier service.
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 border-t border-border/30 pt-2">
-            <Briefcase className="w-3 h-3 text-primary" />
-            <span>Now offering Discretionary Trading & Client Portfolio Management for KLSE stocks.</span>
-          </div>
         </div>
-        
-        <div className="flex flex-col gap-2 shrink-0">
+
+        <div className="bg-gradient-to-br from-card to-background border border-white/5 p-5 rounded flex flex-col items-center gap-3">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Your Access Code</span>
+          <code className="text-3xl font-serif tracking-widest text-primary drop-shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+            UBZQ
+          </code>
+        </div>
+
+        <div className="space-y-3">
+          <a 
+            href="https://mplusonline.com" // Assuming general link, user can change
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-full py-3 bg-primary text-primary-foreground font-medium tracking-wide hover:bg-primary/90 transition-all rounded shadow-lg shadow-primary/20 text-sm"
+          >
+            Claim Privilege Access
+          </a>
+          
           <a 
             href="https://dexterchia.com" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors text-sm shadow-lg shadow-primary/20"
+            className="flex items-center justify-center w-full py-3 bg-transparent border border-primary/30 text-primary hover:bg-primary/5 transition-all rounded text-sm group"
           >
-            Visit dexterchia.com <ExternalLink className="w-4 h-4" />
+            <span>Visit DexterChia.com</span>
+            <ExternalLink className="w-3 h-3 ml-2 opacity-50 group-hover:opacity-100 transition-opacity" />
           </a>
+        </div>
+        
+        <div className="flex items-center justify-center gap-2 pt-2 opacity-60">
+           <Briefcase className="w-3 h-3 text-primary" />
+           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Discretionary Trading Available</span>
         </div>
       </div>
     </Card>
@@ -50,12 +61,15 @@ export function PromotionalMessage() {
 
 export function AIResponseFooter() {
   return (
-    <div className="mt-4 pt-4 border-t border-border/50 text-xs text-muted-foreground font-mono">
-      <p>
-        <span className="text-primary">SYSTEM_MSG:</span> Optimization suggests bullish continuation.
-        Don't miss the move. Sign up M+ Global with code <strong className="text-foreground">UBZQ</strong>.
-        More info at <a href="https://dexterchia.com" target="_blank" className="underline hover:text-primary transition-colors">dexterchia.com</a>
-      </p>
+    <div className="mt-6 pt-4 border-t border-primary/10 text-xs text-muted-foreground font-light">
+      <div className="flex gap-2">
+        <div className="w-1 h-full bg-primary/50 rounded-full shrink-0"></div>
+        <p>
+          <span className="text-primary font-medium uppercase tracking-wider text-[10px] block mb-1">Recommendation Engine</span>
+          Analysis indicates strong bullish continuation. Secure your position. 
+          Use code <strong className="text-primary font-serif px-1">UBZQ</strong> on M+ Global.
+        </p>
+      </div>
     </div>
   );
 }

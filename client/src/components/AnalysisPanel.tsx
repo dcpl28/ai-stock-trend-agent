@@ -2,8 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowUpRight, ArrowDownRight, Activity, TrendingUp, AlertTriangle } from "lucide-react";
-import { PromotionalMessage, AIResponseFooter } from "./PromotionalMessage";
+import { Activity, TrendingUp, TrendingDown, AlignLeft } from "lucide-react";
+import { AIResponseFooter } from "./PromotionalMessage";
 
 interface AnalysisPanelProps {
   symbol: string;
@@ -17,79 +17,73 @@ export function AnalysisPanel({ symbol, currentPrice, trend, confidence }: Analy
 
   return (
     <div className="space-y-6">
-      <Card className="bg-card/50 backdrop-blur-sm border-border overflow-hidden">
-        <div className={`h-2 w-full ${isBullish ? 'bg-[hsl(var(--chart-bullish))]' : 'bg-[hsl(var(--chart-bearish))]'}`} />
-        <CardHeader>
+      <Card className="glass-panel border-t-4 border-t-primary rounded-t-lg overflow-hidden">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
-            <span className="text-lg text-muted-foreground font-normal">Technical Analysis</span>
+            <span className="text-sm uppercase tracking-widest text-muted-foreground font-medium">Market Sentiment</span>
             <Badge 
               variant="outline" 
-              className={`px-3 py-1 text-sm font-bold border-2 ${
+              className={`px-4 py-1 text-xs font-bold tracking-widest uppercase border ${
                 isBullish 
-                  ? 'border-[hsl(var(--chart-bullish))] text-[hsl(var(--chart-bullish))] bg-[hsl(var(--chart-bullish))]/10' 
-                  : 'border-[hsl(var(--chart-bearish))] text-[hsl(var(--chart-bearish))] bg-[hsl(var(--chart-bearish))]/10'
+                  ? 'border-[hsl(var(--chart-bullish))] text-[hsl(var(--chart-bullish))] bg-[hsl(var(--chart-bullish))]/5' 
+                  : 'border-[hsl(var(--chart-bearish))] text-[hsl(var(--chart-bearish))] bg-[hsl(var(--chart-bearish))]/5'
               }`}
             >
-              {trend.toUpperCase()}
+              {trend}
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Current Price</span>
-              <div className="text-3xl font-mono font-bold tracking-tight">
-                {currentPrice.toFixed(2)}
+        <CardContent className="space-y-8 pt-6">
+          <div className="grid grid-cols-2 gap-8 relative">
+            {/* Center Divider */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
+            
+            <div className="space-y-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Target Price</span>
+              <div className="text-3xl font-serif text-foreground">
+                {(currentPrice * (isBullish ? 1.15 : 0.85)).toFixed(2)}
               </div>
             </div>
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Trend Confidence</span>
+            
+            <div className="space-y-2 pl-4">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Confidence</span>
               <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
-                <span className="text-2xl font-mono font-bold">{confidence}%</span>
+                <span className="text-3xl font-serif text-primary">{confidence}%</span>
               </div>
             </div>
           </div>
 
-          <Separator className="bg-border/50" />
-
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" /> Detected Patterns
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-foreground uppercase tracking-widest flex items-center gap-2 opacity-80">
+              <AlignLeft className="w-4 h-4" /> Technical Indicators
             </h4>
-            <div className="grid grid-cols-1 gap-2">
-              <div className="flex items-center justify-between p-2 rounded bg-secondary/30 border border-border/50 text-sm">
-                <span>Moving Average Crossover</span>
-                <span className={isBullish ? "text-[hsl(var(--chart-bullish))]" : "text-[hsl(var(--chart-bearish))]"}>
-                   {isBullish ? "Golden Cross" : "Death Cross"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded bg-secondary/30 border border-border/50 text-sm">
-                <span>RSI (14)</span>
-                <span className="font-mono">{isBullish ? "62.4 (Healthy)" : "34.2 (Oversold)"}</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded bg-secondary/30 border border-border/50 text-sm">
-                <span>Volume Analysis</span>
-                <span className="font-mono">Accumulation</span>
-              </div>
+            
+            <div className="space-y-1">
+               {[
+                 { label: 'RSI (14)', value: isBullish ? '64.2' : '32.1', status: isBullish ? 'Neutral' : 'Oversold' },
+                 { label: 'MACD', value: isBullish ? '+0.45' : '-0.12', status: isBullish ? 'Buy Signal' : 'Sell Signal' },
+                 { label: 'Mov. Avg (50)', value: (currentPrice * 0.95).toFixed(2), status: 'Support' }
+               ].map((item, i) => (
+                 <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors rounded border-b border-white/5 last:border-0">
+                    <span className="text-sm text-muted-foreground font-light">{item.label}</span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-mono text-foreground">{item.value}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border border-white/10 ${
+                        item.status.includes('Buy') || item.status.includes('Support') ? 'text-green-400' : 'text-muted-foreground'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </div>
+                 </div>
+               ))}
             </div>
           </div>
 
-          <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg space-y-2">
-            <div className="flex items-center gap-2 text-primary font-medium text-sm">
-              <AlertTriangle className="w-4 h-4" />
-              <span>Remisier's Note</span>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Based on the candlestick formation, {symbol} is showing strong {trend} momentum. 
-              Key support levels held firmly during the last session.
-            </p>
+          <div className="pt-2">
             <AIResponseFooter />
           </div>
         </CardContent>
       </Card>
-      
-      <PromotionalMessage />
     </div>
   );
 }
