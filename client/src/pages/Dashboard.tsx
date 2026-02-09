@@ -6,6 +6,7 @@ import { generateMockData } from "@/lib/stockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, RefreshCw, Diamond, Crown, ChevronRight, TrendingUp } from "lucide-react";
+import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { CompanyInsights } from "@/components/CompanyInsights";
 
 export default function Dashboard() {
