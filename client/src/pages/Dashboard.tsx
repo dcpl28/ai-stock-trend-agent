@@ -6,7 +6,7 @@ import { generateMockData } from "@/lib/stockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, RefreshCw, Diamond, Crown, ChevronRight, TrendingUp } from "lucide-react";
-import { PromotionalMessage } from '@/components/PromotionalMessage';
+import { CompanyInsights } from "@/components/CompanyInsights";
 
 export default function Dashboard() {
   const [symbol, setSymbol] = useState("KLSE:MAYBANK");
@@ -113,20 +113,8 @@ export default function Dashboard() {
                </div>
              )}
 
-             {/* Metric Cards */}
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: 'Open', value: (Math.random() * 10 + 100).toFixed(2) },
-                  { label: 'High', value: (Math.random() * 10 + 110).toFixed(2) },
-                  { label: 'Low', value: (Math.random() * 10 + 90).toFixed(2) },
-                  { label: 'Vol', value: '2.4M' },
-                ].map((item) => (
-                  <div key={item.label} className="bg-card/40 border border-white/5 p-4 rounded text-center hover:bg-white/5 transition-colors">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{item.label}</div>
-                    <div className="text-xl font-serif font-medium text-foreground">{item.value}</div>
-                  </div>
-                ))}
-             </div>
+             {/* Metric Cards - REPLACED WITH COMPANY INSIGHTS */}
+             <CompanyInsights symbol={symbol} />
           </div>
 
           {/* Analysis & Promo Sidebar */}
