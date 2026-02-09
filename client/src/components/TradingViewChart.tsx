@@ -14,8 +14,12 @@ export default function TradingViewChart({ symbol }: { symbol: string }) {
     script.type = "text/javascript";
     script.async = true;
     
-    // Format symbol for TradingView (e.g., "KLSE:MAYBANK")
-    const formattedSymbol = symbol.includes("KLSE") ? symbol : `NASDAQ:${symbol}`;
+    // Format symbol for TradingView (e.g., "KLSE:MAYBANK" -> "MYX:MAYBANK")
+    const formattedSymbol = symbol.includes("KLSE") 
+      ? symbol.replace("KLSE", "MYX") 
+      : symbol.includes("MYX") 
+        ? symbol 
+        : `NASDAQ:${symbol}`;
 
     script.innerHTML = JSON.stringify({
       "autosize": true,

@@ -25,7 +25,18 @@ export default function Dashboard() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
-      setSymbol(searchInput.toUpperCase());
+      let searchSym = searchInput.toUpperCase();
+      // If user types MYX:MAYBANK, we can keep it or normalize it.
+      // Our generateMockData checks for "KLSE" or ".KL".
+      // Let's allow users to type "MYX:" and internally treat it as KLSE for mock data purposes if needed,
+      // or just ensure we pass the right thing to TradingViewChart.
+      
+      // For simplicity in this mock, we'll keep using KLSE prefix internally for consistency with mock data logic
+      // but the TradingViewChart component will handle the translation to MYX.
+      if (searchSym.startsWith("MYX:")) {
+         searchSym = searchSym.replace("MYX:", "KLSE:");
+      }
+      setSymbol(searchSym);
     }
   };
 
