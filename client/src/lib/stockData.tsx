@@ -14,10 +14,17 @@ export const generateMockData = (symbol: string, days: number = 30): CandleData[
   
   // Detect market type for realistic price ranges
   const isKLSE = symbol.includes("KLSE") || symbol.includes(".KL");
-  // KLSE stocks usually lower price (e.g. 5.00 - 10.00), US stocks higher (e.g. 100.00 - 200.00)
-  let price = isKLSE 
-    ? 2 + Math.random() * 8   // KLSE: 2.00 - 10.00 range
-    : 100 + Math.random() * 50; // US: 100.00 - 150.00 range
+  
+  // REALISM UPDATE: Hardcoded base prices for common requests to match real market roughly
+  let basePrice = 100;
+  if (symbol.includes("MAYBANK")) basePrice = 10.20;
+  else if (symbol.includes("PBBANK") || symbol.includes("PUBLIC")) basePrice = 4.20;
+  else if (symbol.includes("CIMB")) basePrice = 8.20;
+  else if (symbol.includes("GENTING")) basePrice = 4.05;
+  else if (isKLSE) basePrice = 5.00; // Generic KLSE
+  else basePrice = 150.00; // Generic US
+
+  let price = basePrice + (Math.random() - 0.5) * (basePrice * 0.05);
   
   for (let i = 0; i < days; i++) {
     const date = new Date();

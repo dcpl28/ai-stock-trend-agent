@@ -65,8 +65,7 @@ export function AnalysisPanel({ symbol, currentPrice, trend, confidence }: Analy
                {[
                  { label: 'RSI (14)', value: isBullish ? '64.2' : '32.1', status: isBullish ? 'Neutral' : 'Oversold' },
                  { label: 'MACD', value: isBullish ? '+0.45' : '-0.12', status: isBullish ? 'Strong' : 'Weak' },
-                 { label: 'MA (20)', value: (currentPrice * 0.98).toFixed(2), status: isBullish ? 'Support' : 'Resistance' },
-                 { label: 'MA (200)', value: (currentPrice * 0.90).toFixed(2), status: 'Trend Line' }
+                 { label: 'Trend', value: isBullish ? 'Upward' : 'Downward', status: 'Direction' }
                ].map((item, i) => (
                  <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors rounded border-b border-white/5 last:border-0">
                     <span className="text-sm text-muted-foreground font-light">{item.label}</span>

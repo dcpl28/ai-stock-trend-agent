@@ -104,14 +104,13 @@ export default function Dashboard() {
                   <h2 className="text-3xl font-serif text-foreground">
                     {symbol}
                   </h2>
-                  <span className="text-2xl font-light text-primary tracking-tighter flex items-baseline gap-1">
-                    {latestClose.toFixed(2)} <span className="text-xs text-muted-foreground font-sans uppercase">{currency}</span>
+                  {/* Price removed to avoid conflict with TradingView Widget which shows real-time data */}
+                  <span className="text-sm font-light text-muted-foreground tracking-wide flex items-center gap-2">
+                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                     Live Market Data
                   </span>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading} className="text-muted-foreground hover:text-primary transition-colors text-xs tracking-wider uppercase">
-                  <RefreshCw className={`w-3 h-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh Data
-                </Button>
+                {/* Refresh button removed as TradingView is auto-refreshing */}
              </div>
              
              {data ? (
@@ -131,9 +130,10 @@ export default function Dashboard() {
 
           {/* Analysis & Promo Sidebar */}
           <div className="lg:col-span-4 space-y-8">
+             {/* Analysis Panel uses mock data, so we hide specific price points to avoid confusion with the live chart */}
              <AnalysisPanel 
                symbol={symbol}
-               currentPrice={latestClose}
+               currentPrice={0} // Hidden in component
                trend={trend}
                confidence={confidence}
              />
