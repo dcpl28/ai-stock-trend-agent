@@ -5,7 +5,7 @@ import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { generateMockData } from "@/lib/stockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, Diamond, Crown, ChevronRight } from "lucide-react";
+import { Search, RefreshCw, Diamond, Crown, ChevronRight, TrendingUp } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 
 export default function Dashboard() {
@@ -40,34 +40,43 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto p-4 md:p-8 relative z-10 space-y-12">
         
         {/* Luxury Header */}
-        <header className="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-primary/20 pb-8">
-          <div className="text-center md:text-left space-y-2">
+        <header className="flex flex-col md:flex-row justify-between items-center gap-8 border-b border-primary/20 pb-8">
+          <div className="text-center md:text-left space-y-3">
             <div className="flex items-center justify-center md:justify-start gap-2 text-primary mb-1">
-              <Crown className="w-5 h-5" strokeWidth={1.5} />
-              <span className="text-xs uppercase tracking-[0.2em] font-medium">Private Client Access</span>
+              <Crown className="w-4 h-4" strokeWidth={1.5} />
+              <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">Dexter Chia Private Clients</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight text-foreground">
-              Dexter<span className="text-primary italic">Chia</span>
+              Market<span className="text-primary italic">Pro</span> Terminal
             </h1>
-            <p className="text-muted-foreground font-light tracking-wide text-sm">
-              Exclusive Remisier Services & Portfolio Management
+            <p className="text-muted-foreground font-light tracking-wide text-sm max-w-md">
+              Institutional-grade analytics for the discerning investor. <br className="hidden md:block"/>
+              Managed by Dexter Chia, Licensed Remisier.
             </p>
           </div>
           
-          <form onSubmit={handleSearch} className="flex gap-0 w-full md:w-auto shadow-2xl shadow-black/40 rounded-lg overflow-hidden border border-primary/20 group focus-within:border-primary/50 transition-colors">
-            <div className="relative w-full md:w-80 bg-card">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60" />
-              <Input 
-                placeholder="Search Symbol (e.g. KLSE:GENM)" 
-                className="pl-11 h-12 bg-transparent border-none text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-0 font-medium tracking-wide"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
+          <div className="flex flex-col gap-2 w-full md:w-auto">
+            <form onSubmit={handleSearch} className="flex gap-0 shadow-2xl shadow-black/40 rounded-lg overflow-hidden border border-primary/20 group focus-within:border-primary/50 transition-colors w-full md:w-auto">
+              <div className="relative w-full md:w-80 bg-card">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60" />
+                <Input 
+                  placeholder="Search Symbol (e.g. KLSE:GENM)" 
+                  className="pl-11 h-12 bg-transparent border-none text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-0 font-medium tracking-wide"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="h-12 px-8 rounded-none bg-primary text-primary-foreground font-medium tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
+                ANALYZE
+              </Button>
+            </form>
+            <div className="flex justify-between md:justify-end px-1">
+               <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                 Market Open
+               </span>
             </div>
-            <Button type="submit" className="h-12 px-8 rounded-none bg-primary text-primary-foreground font-medium tracking-widest hover:bg-primary/90 transition-all">
-              ANALYZE
-            </Button>
-          </form>
+          </div>
         </header>
 
         {/* Main Content */}
@@ -80,13 +89,13 @@ export default function Dashboard() {
                   <h2 className="text-3xl font-serif text-foreground">
                     {symbol}
                   </h2>
-                  <span className="text-2xl font-light text-primary tracking-tighter">
-                    {latestClose.toFixed(2)} <span className="text-xs text-muted-foreground font-sans align-middle ml-1">USD</span>
+                  <span className="text-2xl font-light text-primary tracking-tighter flex items-baseline gap-1">
+                    {latestClose.toFixed(2)} <span className="text-xs text-muted-foreground font-sans uppercase">USD</span>
                   </span>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading} className="text-muted-foreground hover:text-primary transition-colors">
+                <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading} className="text-muted-foreground hover:text-primary transition-colors text-xs tracking-wider uppercase">
                   <RefreshCw className={`w-3 h-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  Update View
+                  Refresh Data
                 </Button>
              </div>
              
@@ -107,9 +116,9 @@ export default function Dashboard() {
                   { label: 'Open', value: (Math.random() * 10 + 100).toFixed(2) },
                   { label: 'High', value: (Math.random() * 10 + 110).toFixed(2) },
                   { label: 'Low', value: (Math.random() * 10 + 90).toFixed(2) },
-                  { label: 'Volume', value: '2.4M' },
+                  { label: 'Vol', value: '2.4M' },
                 ].map((item) => (
-                  <div key={item.label} className="bg-card/40 border border-white/5 p-4 rounded text-center">
+                  <div key={item.label} className="bg-card/40 border border-white/5 p-4 rounded text-center hover:bg-white/5 transition-colors">
                     <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{item.label}</div>
                     <div className="text-xl font-serif font-medium text-foreground">{item.value}</div>
                   </div>
