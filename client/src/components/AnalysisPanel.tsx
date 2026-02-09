@@ -1,8 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Activity, TrendingUp, TrendingDown, AlignLeft } from "lucide-react";
+import { AlignLeft, BrainCircuit } from "lucide-react";
 import { AIResponseFooter } from "./PromotionalMessage";
 
 interface AnalysisPanelProps {
@@ -39,9 +38,13 @@ export function AnalysisPanel({ symbol, currentPrice, trend, confidence }: Analy
             <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
             
             <div className="space-y-2">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Target Price</span>
-              <div className="text-3xl font-serif text-foreground">
-                {(currentPrice * (isBullish ? 1.15 : 0.85)).toFixed(2)}
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                 <BrainCircuit className="w-3 h-3 text-primary" /> AI Pattern Analysis
+              </span>
+              <div className="text-sm font-medium text-foreground leading-snug">
+                {isBullish 
+                  ? "Ascending Triangle Breakout detected. Higher lows confirm accumulation phase." 
+                  : "Head and Shoulders pattern forming. Distribution evident at resistance levels."}
               </div>
             </div>
             
@@ -61,15 +64,18 @@ export function AnalysisPanel({ symbol, currentPrice, trend, confidence }: Analy
             <div className="space-y-1">
                {[
                  { label: 'RSI (14)', value: isBullish ? '64.2' : '32.1', status: isBullish ? 'Neutral' : 'Oversold' },
-                 { label: 'MACD', value: isBullish ? '+0.45' : '-0.12', status: isBullish ? 'Buy Signal' : 'Sell Signal' },
-                 { label: 'Mov. Avg (50)', value: (currentPrice * 0.95).toFixed(2), status: 'Support' }
+                 { label: 'MACD', value: isBullish ? '+0.45' : '-0.12', status: isBullish ? 'Strong' : 'Weak' },
+                 { label: 'MA (20)', value: (currentPrice * 0.98).toFixed(2), status: isBullish ? 'Support' : 'Resistance' },
+                 { label: 'MA (200)', value: (currentPrice * 0.90).toFixed(2), status: 'Trend Line' }
                ].map((item, i) => (
                  <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors rounded border-b border-white/5 last:border-0">
                     <span className="text-sm text-muted-foreground font-light">{item.label}</span>
                     <div className="flex items-center gap-4">
                       <span className="text-sm font-mono text-foreground">{item.value}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded border border-white/10 ${
-                        item.status.includes('Buy') || item.status.includes('Support') ? 'text-green-400' : 'text-muted-foreground'
+                        item.status === 'Strong' || item.status === 'Support' ? 'text-green-400' : 
+                        item.status === 'Weak' || item.status === 'Resistance' ? 'text-red-400' :
+                        'text-muted-foreground'
                       }`}>
                         {item.status}
                       </span>

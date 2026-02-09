@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { 
   ComposedChart, 
   Bar, 
+  Line,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -20,13 +21,28 @@ interface StockChartProps {
 export function StockChart({ data, symbol }: StockChartProps) {
   const domainMin = useMemo(() => Math.min(...data.map(d => d.low)) * 0.99, [data]);
   const domainMax = useMemo(() => Math.max(...data.map(d => d.high)) * 1.01, [data]);
+  
+  // Calculate Moving Averages
+  const dataWithMA = useMemo(() => {
+    return data.map((item, index, array) => {
+      const ma20 = index >= 19 
+        ? array.slice(index - 19, index + 1).reduce((sum, d) => sum + d.close, 0) / 20 
+        : null;
+        
+      const ma200 = index >= 199
+        ? array.slice(index - 199, index + 1).reduce((sum, d) => sum + d.close, 0) / 200
+        : null; // Won't show for short datasets, which is correct
+        
+      return { ...item, ma20, ma200 };
+    });
+  }, [data]);
 
   return (
     <Card className="w-full bg-transparent border-none shadow-none">
       <CardContent className="h-[450px] w-full p-0">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={data}
+            data={dataWithMA}
             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
           >
             {/* Elegant, subtle grid */}
@@ -71,6 +87,14 @@ export function StockChart({ data, symbol }: StockChartProps) {
                         <span className={`text-right ${isUp ? "text-[hsl(var(--chart-bullish))]" : "text-[hsl(var(--chart-bearish))]"}`}>
                           {d.close.toFixed(2)}
                         </span>
+                        
+                        {d.ma20 && (
+                          <>
+                            <span className="text-muted-foreground text-xs mt-2 border-t border-white/5 pt-2">MA(20)</span>
+                            <span className="text-right text-[#3b82f6] text-xs mt-2 border-t border-white/5 pt-2">{d.ma20.toFixed(2)}</span>
+                          </>
+                        )}
+                        
                         <div className="col-span-2 pt-2 mt-1 border-t border-white/5 flex justify-between">
                           <span className="text-muted-foreground text-xs">Vol</span>
                           <span className="text-primary/80">{(d.volume / 1000).toFixed(1)}K</span>
@@ -99,6 +123,26 @@ export function StockChart({ data, symbol }: StockChartProps) {
                 ))
               }
             </Bar>
+            
+            {/* MA Lines */}
+            <Line 
+              type="monotone" 
+              dataKey="ma20" 
+              stroke="#3b82f6" 
+              strokeWidth={1.5} 
+              dot={false} 
+              activeDot={false} 
+              isAnimationActive={true}
+            />
+             <Line 
+              type="monotone" 
+              dataKey="ma200" 
+              stroke="#f59e0b" 
+              strokeWidth={1.5} 
+              dot={false} 
+              activeDot={false} 
+              isAnimationActive={true}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>
