@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
-import { StockChart } from "@/components/StockChart";
+import TradingViewChart from "@/components/TradingViewChart";
+import { CompanyInsights } from "@/components/CompanyInsights";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { generateMockData } from "@/lib/stockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, Diamond, Crown, ChevronRight, TrendingUp } from "lucide-react";
+import { Search, RefreshCw, Diamond, Crown } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
-import { CompanyInsights } from "@/components/CompanyInsights";
 
 export default function Dashboard() {
   const [symbol, setSymbol] = useState("KLSE:MAYBANK");
@@ -104,8 +104,8 @@ export default function Dashboard() {
              </div>
              
              {data ? (
-               <div className="glass-panel p-1 rounded-lg">
-                 <StockChart data={data} symbol={symbol} />
+               <div className="glass-panel p-1 rounded-lg h-[500px]">
+                 <TradingViewChart symbol={symbol} />
                </div>
              ) : (
                <div className="h-[400px] flex flex-col items-center justify-center bg-card/20 rounded-lg border border-primary/10 border-dashed text-muted-foreground font-light">
