@@ -32,6 +32,9 @@ export default function Dashboard() {
   const trend = latestClose > (data ? data[0].close : 0) ? 'bullish' : 'bearish';
   const confidence = Math.floor(Math.random() * 30) + 70; // 70-99%
 
+  const isKLSE = symbol.includes("KLSE") || symbol.includes(".KL");
+  const currency = isKLSE ? "MYR" : "USD";
+
   return (
     <div className="min-h-screen font-sans pb-20">
       {/* Decorative Background Elements */}
@@ -90,7 +93,7 @@ export default function Dashboard() {
                     {symbol}
                   </h2>
                   <span className="text-2xl font-light text-primary tracking-tighter flex items-baseline gap-1">
-                    {latestClose.toFixed(2)} <span className="text-xs text-muted-foreground font-sans uppercase">USD</span>
+                    {latestClose.toFixed(2)} <span className="text-xs text-muted-foreground font-sans uppercase">{currency}</span>
                   </span>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading} className="text-muted-foreground hover:text-primary transition-colors text-xs tracking-wider uppercase">

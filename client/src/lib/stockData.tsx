@@ -11,7 +11,13 @@ export interface CandleData {
 
 export const generateMockData = (symbol: string, days: number = 30): CandleData[] => {
   const data: CandleData[] = [];
-  let price = 100 + Math.random() * 50;
+  
+  // Detect market type for realistic price ranges
+  const isKLSE = symbol.includes("KLSE") || symbol.includes(".KL");
+  // KLSE stocks usually lower price (e.g. 5.00 - 10.00), US stocks higher (e.g. 100.00 - 200.00)
+  let price = isKLSE 
+    ? 2 + Math.random() * 8   // KLSE: 2.00 - 10.00 range
+    : 100 + Math.random() * 50; // US: 100.00 - 150.00 range
   
   for (let i = 0; i < days; i++) {
     const date = new Date();
