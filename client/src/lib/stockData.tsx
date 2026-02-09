@@ -64,7 +64,7 @@ export const CandlestickShape = (props: any) => {
   const { open, close, high, low } = payload;
   
   const isBullish = close > open;
-  const color = isBullish ? 'var(--color-chart-bullish)' : 'var(--color-chart-bearish)'; // Green/Red
+  const color = isBullish ? 'hsl(var(--chart-bullish))' : 'hsl(var(--chart-bearish))'; // Green/Red
   
   const pixelHigh = yAxis.scale(high);
   const pixelLow = yAxis.scale(low);
