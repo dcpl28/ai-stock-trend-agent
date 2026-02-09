@@ -1,53 +1,66 @@
 import React, { useEffect, useRef, memo } from 'react';
 
-export default function TradingViewChart({ symbol }: { symbol: string }) {
+function TradingViewWidget({ symbol }: { symbol: string }) {
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Clean up previous script if it exists
-    if (container.current) {
-      container.current.innerHTML = "";
-    }
+    if (!container.current) return;
+    
+    // Clear previous widget
+    container.current.innerHTML = "";
+    
+    // Create widget structure
+    const widgetDiv = document.createElement("div");
+    widgetDiv.className = "tradingview-widget-container__widget";
+    widgetDiv.style.height = "100%";
+    widgetDiv.style.width = "100%";
+    container.current.appendChild(widgetDiv);
 
+    // Create script
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
     script.async = true;
     
-    // Format symbol for TradingView (e.g., "KLSE:MAYBANK" -> "MYX:MAYBANK")
+    // Format symbol dynamically based on prop
     const formattedSymbol = symbol.includes("KLSE") 
       ? symbol.replace("KLSE", "MYX") 
       : symbol.includes("MYX") 
         ? symbol 
-        : `NASDAQ:${symbol}`;
+        : symbol.includes(":") ? symbol : `NASDAQ:${symbol}`;
 
     script.innerHTML = JSON.stringify({
-      "autosize": true,
-      "symbol": formattedSymbol,
+      "allow_symbol_change": true,
+      "calendar": false,
+      "details": false,
+      "hide_side_toolbar": true,
+      "hide_top_toolbar": true,
+      "hide_legend": true,
+      "hide_volume": false,
+      "hotlist": false,
       "interval": "D",
-      "timezone": "Asia/Kuala_Lumpur",
-      "theme": "dark",
-      "style": "1",
       "locale": "en",
-      "enable_publishing": false,
+      "save_image": false,
+      "style": "1",
+      "symbol": formattedSymbol,
+      "theme": "dark",
+      "timezone": "Asia/Kuala_Lumpur",
       "backgroundColor": "rgba(13, 16, 23, 1)", 
       "gridColor": "rgba(255, 255, 255, 0.05)",
-      "hide_top_toolbar": false,
-      "hide_legend": false,
-      "save_image": false,
-      "calendar": false,
-      "hide_volume": true,
-      "support_host": "https://www.tradingview.com"
+      "watchlist": [],
+      "withdateranges": false,
+      "compareSymbols": [],
+      "studies": [],
+      "autosize": true
     });
-
-    if (container.current) {
-      container.current.appendChild(script);
-    }
+    
+    container.current.appendChild(script);
   }, [symbol]);
 
   return (
-    <div className="h-[500px] w-full bg-card/40 rounded-lg overflow-hidden border border-white/5 relative z-0" ref={container}>
-      <div className="tradingview-widget-container__widget h-full w-full"></div>
+    <div className="tradingview-widget-container h-full w-full bg-card/40 rounded-lg overflow-hidden border border-white/5" ref={container}>
     </div>
   );
 }
+
+export default memo(TradingViewWidget);
