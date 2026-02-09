@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import TradingViewChart from "@/components/TradingViewChart";
+import { StockChart } from "@/components/StockChart"; // Re-added StockChart
 import { CompanyInsights } from "@/components/CompanyInsights";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { generateMockData } from "@/lib/stockData";
@@ -26,13 +27,6 @@ export default function Dashboard() {
     e.preventDefault();
     if (searchInput.trim()) {
       let searchSym = searchInput.toUpperCase();
-      // If user types MYX:MAYBANK, we can keep it or normalize it.
-      // Our generateMockData checks for "KLSE" or ".KL".
-      // Let's allow users to type "MYX:" and internally treat it as KLSE for mock data purposes if needed,
-      // or just ensure we pass the right thing to TradingViewChart.
-      
-      // For simplicity in this mock, we'll keep using KLSE prefix internally for consistency with mock data logic
-      // but the TradingViewChart component will handle the translation to MYX.
       if (searchSym.startsWith("MYX:")) {
          searchSym = searchSym.replace("MYX:", "KLSE:");
       }
@@ -44,7 +38,7 @@ export default function Dashboard() {
   const trend = latestClose > (data ? data[0].close : 0) ? 'bullish' : 'bearish';
   const confidence = Math.floor(Math.random() * 30) + 70; // 70-99%
 
-  const isKLSE = symbol.includes("KLSE") || symbol.includes(".KL");
+  const isKLSE = symbol.includes("KLSE") || symbol.includes(".KL") || symbol.includes("MYX");
   const currency = isKLSE ? "MYR" : "USD";
 
   return (
@@ -104,18 +98,25 @@ export default function Dashboard() {
                   <h2 className="text-3xl font-serif text-foreground">
                     {symbol}
                   </h2>
-                  {/* Price removed to avoid conflict with TradingView Widget which shows real-time data */}
                   <span className="text-sm font-light text-muted-foreground tracking-wide flex items-center gap-2">
                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                     Live Market Data
+                     {isKLSE ? "Live Internal Feed" : "Live Market Data"}
                   </span>
                 </div>
-                {/* Refresh button removed as TradingView is auto-refreshing */}
              </div>
              
              {data ? (
                <div className="glass-panel p-1 rounded-lg h-[500px]">
-                 <TradingViewChart symbol={symbol} />
+                 {/* 
+                     CONDITIONAL CHART RENDERING:
+                     - KLSE stocks: Use internal StockChart (to avoid TradingView restriction error)
+                     - US/Other stocks: Use TradingViewChart (for full advanced features)
+                 */}
+                 {isKLSE ? (
+                    <StockChart data={data} symbol={symbol} />
+                 ) : (
+                    <TradingViewChart symbol={symbol} />
+                 )}
                </div>
              ) : (
                <div className="h-[400px] flex flex-col items-center justify-center bg-card/20 rounded-lg border border-primary/10 border-dashed text-muted-foreground font-light">
@@ -133,7 +134,7 @@ export default function Dashboard() {
              {/* Analysis Panel uses mock data, so we hide specific price points to avoid confusion with the live chart */}
              <AnalysisPanel 
                symbol={symbol}
-               currentPrice={0} // Hidden in component
+               currentPrice={isKLSE ? latestClose : 0} // For internal chart, show our price. For TV, hide it.
                trend={trend}
                confidence={confidence}
              />
