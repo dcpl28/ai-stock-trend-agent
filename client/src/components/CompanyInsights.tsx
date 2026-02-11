@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
@@ -37,7 +37,12 @@ interface CompanyInsightsProps {
   isLoading: boolean;
 }
 
-export function CompanyInsights({ symbol, analysis, quote, isLoading }: CompanyInsightsProps) {
+export function CompanyInsights({
+  symbol,
+  analysis,
+  quote,
+  isLoading,
+}: CompanyInsightsProps) {
   const currency = quote?.currency || "USD";
 
   const formatLargeNumber = (num: number | undefined) => {
@@ -55,7 +60,9 @@ export function CompanyInsights({ symbol, analysis, quote, isLoading }: CompanyI
         <Card className="glass-panel border-white/5">
           <CardContent className="py-12 flex flex-col items-center justify-center text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin text-primary/40 mb-3" />
-            <span className="text-sm font-light">Loading company insights...</span>
+            <span className="text-sm font-light">
+              Loading company insights...
+            </span>
           </CardContent>
         </Card>
       ) : analysis?.companyProfile ? (
@@ -68,12 +75,17 @@ export function CompanyInsights({ symbol, analysis, quote, isLoading }: CompanyI
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
             <div className="space-y-2">
-              <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Core Business</h4>
-              <p className="text-sm text-foreground/90 leading-relaxed font-light" data-testid="text-company-business">
+              <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                Core Business
+              </h4>
+              <p
+                className="text-sm text-foreground/90 leading-relaxed font-light"
+                data-testid="text-company-business"
+              >
                 {analysis.companyProfile.business}
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <h4 className="text-xs uppercase tracking-widest text-green-500/80 font-medium flex items-center gap-1">
@@ -81,21 +93,29 @@ export function CompanyInsights({ symbol, analysis, quote, isLoading }: CompanyI
                 </h4>
                 <ul className="space-y-1">
                   {analysis.companyProfile.strengths.map((item, i) => (
-                    <li key={i} className="text-xs text-foreground/80 flex items-start gap-2" data-testid={`text-strength-${i}`}>
+                    <li
+                      key={i}
+                      className="text-xs text-foreground/80 flex items-start gap-2"
+                      data-testid={`text-strength-${i}`}
+                    >
                       <span className="w-1 h-1 rounded-full bg-green-500 mt-1.5 shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
               </div>
-              
+
               <div className="space-y-2">
                 <h4 className="text-xs uppercase tracking-widest text-red-400/80 font-medium flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" /> Risks
                 </h4>
                 <ul className="space-y-1">
                   {analysis.companyProfile.risks.map((item, i) => (
-                    <li key={i} className="text-xs text-foreground/80 flex items-start gap-2" data-testid={`text-risk-${i}`}>
+                    <li
+                      key={i}
+                      className="text-xs text-foreground/80 flex items-start gap-2"
+                      data-testid={`text-risk-${i}`}
+                    >
                       <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0" />
                       {item}
                     </li>
