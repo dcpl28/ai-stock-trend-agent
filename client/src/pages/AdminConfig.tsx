@@ -1,0 +1,268 @@
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield } from "lucide-react";
+import { useLocation } from "wouter";
+
+interface UserEntry {
+  id: string;
+  email: string;
+}
+
+export default function AdminConfig() {
+  const { isAdmin, logout } = useAuth();
+  const [, navigate] = useLocation();
+  const [users, setUsers] = useState<UserEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editEmail, setEditEmail] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate("/");
+      return;
+    }
+    fetchUsers();
+  }, [isAdmin]);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      if (res.ok) {
+        setUsers(await res.json());
+      }
+    } catch {} finally {
+      setLoading(false);
+    }
+  };
+
+  const addUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setAdding(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newEmail, password: newPassword }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to add user");
+        return;
+      }
+      setNewEmail("");
+      setNewPassword("");
+      await fetchUsers();
+    } catch {
+      setError("Failed to add user");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const deleteUser = async (id: string) => {
+    try {
+      await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+      await fetchUsers();
+    } catch {}
+  };
+
+  const startEdit = (user: UserEntry) => {
+    setEditingId(user.id);
+    setEditEmail(user.email);
+    setEditPassword("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const body: any = {};
+    if (editEmail) body.email = editEmail;
+    if (editPassword) body.password = editPassword;
+
+    try {
+      const res = await fetch(`/api/admin/users/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setEditingId(null);
+        await fetchUsers();
+      }
+    } catch {}
+  };
+
+  return (
+    <div className="min-h-screen font-sans pb-20">
+      <div className="fixed top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-transparent pointer-events-none" />
+
+      <div className="max-w-2xl mx-auto p-4 md:p-8 relative z-10 space-y-8">
+        <header className="border-b border-primary/20 pb-6">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+              data-testid="button-back-dashboard"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Terminal
+            </button>
+            <button
+              onClick={logout}
+              className="text-sm text-muted-foreground hover:text-red-400 transition-colors cursor-pointer"
+              data-testid="button-admin-logout"
+            >
+              Logout
+            </button>
+          </div>
+          <div className="flex items-center gap-2 text-primary mb-2">
+            <Crown className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">Admin Panel</span>
+          </div>
+          <h1 className="text-3xl font-serif font-medium tracking-tight text-foreground flex items-center gap-3" data-testid="text-admin-title">
+            <Shield className="w-7 h-7 text-primary" />
+            User Management
+          </h1>
+          <p className="text-muted-foreground font-light tracking-wide text-sm mt-2">
+            Add or remove users who can access the analysis tools. Each user gets 15 minutes per login session.
+          </p>
+        </header>
+
+        <div className="bg-card/50 border border-primary/10 rounded-xl p-6 shadow-2xl shadow-black/40">
+          <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+            <UserPlus className="w-3.5 h-3.5 text-primary" />
+            Add New User
+          </h2>
+          {error && (
+            <div className="text-red-400 text-sm mb-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3" data-testid="text-admin-error">
+              {error}
+            </div>
+          )}
+          <form onSubmit={addUser} className="flex flex-col sm:flex-row gap-3">
+            <Input
+              type="email"
+              placeholder="Email address"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              className="flex-1 h-10 bg-background/50 border-white/10 focus-visible:border-primary/50 text-foreground"
+              required
+              data-testid="input-new-email"
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="flex-1 h-10 bg-background/50 border-white/10 focus-visible:border-primary/50 text-foreground"
+              required
+              data-testid="input-new-password"
+            />
+            <Button
+              type="submit"
+              disabled={adding}
+              className="h-10 px-6 bg-primary text-primary-foreground font-medium tracking-widest hover:bg-primary/90 cursor-pointer"
+              data-testid="button-add-user"
+            >
+              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : "ADD"}
+            </Button>
+          </form>
+        </div>
+
+        <div className="bg-card/50 border border-primary/10 rounded-xl p-6 shadow-2xl shadow-black/40">
+          <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Users className="w-3.5 h-3.5 text-primary" />
+            Allowed Users ({users.length})
+          </h2>
+          {loading ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Loading users...
+            </div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground font-light" data-testid="text-no-users">
+              No users added yet. Add a user above to get started.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {users.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between bg-background/30 border border-white/5 rounded-lg px-4 py-3 group hover:border-primary/20 transition-colors"
+                  data-testid={`row-user-${user.id}`}
+                >
+                  {editingId === user.id ? (
+                    <div className="flex flex-col sm:flex-row gap-2 flex-1 mr-3">
+                      <Input
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        className="h-8 text-sm bg-background/50 border-white/10 text-foreground"
+                        data-testid="input-edit-email"
+                      />
+                      <Input
+                        type="password"
+                        placeholder="New password (optional)"
+                        value={editPassword}
+                        onChange={(e) => setEditPassword(e.target.value)}
+                        className="h-8 text-sm bg-background/50 border-white/10 text-foreground"
+                        data-testid="input-edit-password"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-sm text-foreground font-light" data-testid={`text-user-email-${user.id}`}>
+                      {user.email}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    {editingId === user.id ? (
+                      <>
+                        <button
+                          onClick={saveEdit}
+                          className="p-1.5 text-green-400 hover:bg-green-500/10 rounded transition-colors cursor-pointer"
+                          data-testid="button-save-edit"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="p-1.5 text-muted-foreground hover:bg-white/5 rounded transition-colors cursor-pointer"
+                          data-testid="button-cancel-edit"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => startEdit(user)}
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                          data-testid={`button-edit-${user.id}`}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => deleteUser(user.id)}
+                          className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                          data-testid={`button-delete-${user.id}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

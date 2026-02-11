@@ -1,8 +1,9 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import YahooFinance from "yahoo-finance2";
+import { storage } from "./storage";
 
 const yahooFinance = new YahooFinance();
 
@@ -11,6 +12,8 @@ const replitOpenai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+
 function getAIProvider(): { type: "openai" | "anthropic" | "replit"; } {
   const provider = (process.env.AI_PROVIDER || "replit").toLowerCase();
   if (provider === "openai" && process.env.OPENAI_API_KEY) return { type: "openai" };
@@ -18,23 +21,40 @@ function getAIProvider(): { type: "openai" | "anthropic" | "replit"; } {
   return { type: "replit" };
 }
 
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  const loginAt = req.session.loginAt || 0;
+  const elapsed = Date.now() - loginAt;
+  if (elapsed > 15 * 60 * 1000) {
+    req.session.destroy(() => {});
+    return res.status(401).json({ error: "Session expired" });
+  }
+  next();
+}
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.isAdmin) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
+}
+
 async function resolveYahooSymbol(symbol: string): Promise<string> {
   if (symbol.startsWith("KLSE:") || symbol.startsWith("MYX:")) {
     const ticker = symbol.replace("KLSE:", "").replace("MYX:", "");
 
-    // If ticker is numeric, it's already a Bursa code
     if (/^\d+$/.test(ticker)) {
       return `${ticker}.KL`;
     }
 
-    // Try direct ticker.KL first (e.g., MAYBANK.KL won't work, but 1155.KL will)
     const directSymbol = `${ticker}.KL`;
     try {
       const q: any = await yahooFinance.quote(directSymbol);
       if (q && q.symbol) return directSymbol;
     } catch {}
 
-    // Search Yahoo Finance with multiple queries (Malaysian companies often have "Group" or "Berhad" suffix)
     const searchQueries = [ticker, `${ticker} Group`, `${ticker} Berhad`, `${ticker} Bursa`, `${ticker} Malaysia`];
     for (const query of searchQueries) {
       try {
@@ -74,6 +94,130 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const user = await storage.getUserByEmail(email.toLowerCase());
+      if (!user || user.password !== password) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      req.session.userId = user.id;
+      req.session.email = user.email;
+      req.session.isAdmin = false;
+      req.session.loginAt = Date.now();
+
+      res.json({ email: user.email, expiresIn: 15 * 60 * 1000 });
+    } catch (error: any) {
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/admin-login", async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ error: "Invalid admin password" });
+      }
+
+      req.session.userId = "admin";
+      req.session.email = "admin";
+      req.session.isAdmin = true;
+      req.session.loginAt = Date.now();
+
+      res.json({ isAdmin: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.json({ ok: true });
+    });
+  });
+
+  app.get("/api/auth/session", (req, res) => {
+    if (!req.session.userId) {
+      return res.json({ authenticated: false });
+    }
+    const loginAt = req.session.loginAt || 0;
+    const elapsed = Date.now() - loginAt;
+    const remaining = Math.max(0, 15 * 60 * 1000 - elapsed);
+
+    if (remaining <= 0) {
+      req.session.destroy(() => {});
+      return res.json({ authenticated: false });
+    }
+
+    res.json({
+      authenticated: true,
+      email: req.session.email,
+      isAdmin: req.session.isAdmin || false,
+      remainingMs: remaining,
+    });
+  });
+
+  app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users.map(u => ({ id: u.id, email: u.email })));
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/admin/users", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const existing = await storage.getUserByEmail(email);
+      if (existing) {
+        return res.status(409).json({ error: "User with this email already exists" });
+      }
+
+      const user = await storage.createUser({ email, password });
+      res.json({ id: user.id, email: user.email });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { email, password } = req.body;
+      const updateData: any = {};
+      if (email) updateData.email = email;
+      if (password) updateData.password = password;
+
+      const user = await storage.updateUser(id, updateData);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ id: user.id, email: user.email });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteUser(id);
+      res.json({ ok: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
 
   app.get("/api/search/:query", async (req, res) => {
     try {
@@ -170,7 +314,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/analysis", async (req, res) => {
+  app.post("/api/analysis", requireAuth, async (req, res) => {
     try {
       const { symbol, candles, quote } = req.body;
 

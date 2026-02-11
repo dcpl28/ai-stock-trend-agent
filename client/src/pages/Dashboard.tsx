@@ -6,9 +6,11 @@ import { CompanyInsights } from "@/components/CompanyInsights";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2, BrainCircuit, Info } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 
 interface CandleData {
   time: string;
@@ -73,6 +75,34 @@ interface AnalysisResponse {
 export default function Dashboard() {
   const [symbol, setSymbol] = useState("KLSE:MAYBANK");
   const [searchInput, setSearchInput] = useState("");
+  const { email, isAdmin, remainingMs, logout, checkSession } = useAuth();
+  const [, navigate] = useLocation();
+  const [timeLeft, setTimeLeft] = useState(remainingMs);
+
+  useEffect(() => {
+    setTimeLeft(remainingMs);
+  }, [remainingMs]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        const next = prev - 1000;
+        if (next <= 0) {
+          checkSession();
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [checkSession]);
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
 
   const { data: stockData, isLoading: stockLoading, error: stockError } = useQuery<StockResponse>({
     queryKey: ['/api/stock', symbol],
@@ -142,6 +172,37 @@ export default function Dashboard() {
       
       <div className="max-w-7xl mx-auto p-4 md:p-8 relative z-10 space-y-12">
         
+        <div className="flex items-center justify-between bg-card/30 border border-primary/10 rounded-lg px-4 py-2.5">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="font-light" data-testid="text-session-email">{email}</span>
+            <span className="text-primary/30">|</span>
+            <span className={`flex items-center gap-1.5 font-mono text-xs ${timeLeft < 120000 ? 'text-red-400' : 'text-muted-foreground'}`} data-testid="text-session-timer">
+              <Clock className="w-3 h-3" />
+              {formatTime(timeLeft)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin")}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                data-testid="button-admin-config"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Manage Users
+              </button>
+            )}
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors cursor-pointer"
+              data-testid="button-logout"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Logout
+            </button>
+          </div>
+        </div>
+
         <header className="flex flex-col md:flex-row justify-between items-center gap-8 border-b border-primary/20 pb-8">
           <div className="text-center md:text-left space-y-3">
             <div className="flex items-center justify-center md:justify-start gap-2 text-primary mb-1">
