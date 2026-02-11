@@ -230,12 +230,25 @@ export async function registerRoutes(
     try {
       const { symbol } = req.params;
       const yahooSymbol = await resolveYahooSymbol(symbol);
-      const searchResult: any = await yahooFinance.search(yahooSymbol);
+
+      let companyName = "";
+      try {
+        const quoteResult: any = await yahooFinance.quote(yahooSymbol);
+        companyName = quoteResult?.shortName || quoteResult?.longName || "";
+      } catch (e) {}
+
+      const searchQuery = companyName
+        ? companyName.replace(/\b(Bhd|Berhad|Corp|Inc|Ltd|Limited|PLC|Co)\b\.?/gi, "").trim()
+        : yahooSymbol;
+
+      const searchResult: any = await yahooFinance.search(searchQuery);
       const news = (searchResult.news || []).slice(0, 8).map((article: any) => ({
         title: article.title,
         publisher: article.publisher,
         link: article.link,
-        publishedAt: article.providerPublishTime ? new Date(article.providerPublishTime * 1000).toISOString() : null,
+        publishedAt: article.providerPublishTime
+          ? new Date(typeof article.providerPublishTime === 'number' ? article.providerPublishTime * 1000 : article.providerPublishTime).toISOString()
+          : null,
         thumbnail: article.thumbnail?.resolutions?.[0]?.url || null,
       }));
       res.json(news);
