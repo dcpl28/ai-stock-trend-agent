@@ -61,7 +61,7 @@ export function CompanyInsights({ symbol, analysis, quote, isLoading }: CompanyI
       ) : analysis?.companyProfile ? (
         <Card className="glass-panel border-white/5">
           <CardHeader className="pb-3 border-b border-white/5">
-            <CardTitle className="flex items-center gap-2 text-lg font-serif">
+            <CardTitle className="flex items-center gap-2 text-2xl font-serif">
               <Building2 className="w-5 h-5 text-primary" />
               Company Profile
             </CardTitle>
