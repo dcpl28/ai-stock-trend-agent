@@ -234,11 +234,11 @@ export async function registerRoutes(
       let companyName = "";
       try {
         const quoteResult: any = await yahooFinance.quote(yahooSymbol);
-        companyName = quoteResult?.shortName || quoteResult?.longName || "";
+        companyName = quoteResult?.longName || quoteResult?.shortName || "";
       } catch (e) {}
 
       const searchQuery = companyName
-        ? companyName.replace(/\b(Bhd|Berhad|Corp|Inc|Ltd|Limited|PLC|Co)\b\.?/gi, "").trim()
+        ? companyName.replace(/\b(Bhd|Berhad|Inc|Ltd|Limited|PLC|Tbk|S\.A\.|AG)\b\.?$/gi, "").trim()
         : yahooSymbol;
 
       const searchResult: any = await yahooFinance.search(searchQuery);
