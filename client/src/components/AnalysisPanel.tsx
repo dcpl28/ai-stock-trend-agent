@@ -78,23 +78,10 @@ export function AnalysisPanel({ symbol, currentPrice, analysis, isLoading, curre
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
-          <div className="grid grid-cols-2 gap-8 relative">
-            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
-            
-            <div className="space-y-2">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                 <BrainCircuit className="w-3 h-3 text-primary" /> AI Pattern Analysis
-              </span>
-              <div className="text-sm font-medium text-foreground leading-snug" data-testid="text-pattern-analysis">
-                {analysis.patternAnalysis}
-              </div>
-            </div>
-            
-            <div className="space-y-2 pl-4">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Confidence</span>
-              <div className="flex items-center gap-2">
-                <span className="text-3xl font-serif text-primary" data-testid="text-confidence">{analysis.confidence}%</span>
-              </div>
+          <div className="space-y-2">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Confidence</span>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-serif text-primary" data-testid="text-confidence">{analysis.confidence}%</span>
             </div>
           </div>
 

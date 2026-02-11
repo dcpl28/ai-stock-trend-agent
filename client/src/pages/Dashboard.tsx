@@ -6,7 +6,7 @@ import { CompanyInsights } from "@/components/CompanyInsights";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2 } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 
@@ -182,9 +182,9 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          <div className="space-y-6">
+          <div className="lg:col-span-8 space-y-6">
              <div className="flex justify-between items-end border-b border-white/5 pb-2">
                 <div className="flex items-baseline gap-4">
                   <h2 className="text-3xl font-serif text-foreground" data-testid="text-symbol-name">
@@ -232,24 +232,44 @@ export default function Dashboard() {
                   No data available
                </div>
              )}
+
+             {analysisLoading ? (
+               <div className="glass-panel p-4 rounded-lg border border-primary/10">
+                 <div className="flex items-center gap-2 text-muted-foreground">
+                   <Loader2 className="w-4 h-4 animate-spin text-primary/40" />
+                   <span className="text-sm font-light">Analyzing chart patterns...</span>
+                 </div>
+               </div>
+             ) : analysis?.patternAnalysis ? (
+               <div className="glass-panel p-4 rounded-lg border border-primary/10">
+                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1 mb-2">
+                   <BrainCircuit className="w-3 h-3 text-primary" /> AI Pattern Analysis
+                 </span>
+                 <p className="text-sm text-foreground/90 font-light leading-relaxed" data-testid="text-pattern-analysis-below-chart">
+                   {analysis.patternAnalysis}
+                 </p>
+               </div>
+             ) : null}
+
+             <CompanyInsights
+               symbol={symbol}
+               analysis={analysis}
+               quote={quoteData}
+               isLoading={analysisLoading || quoteLoading}
+             />
           </div>
 
-          <AnalysisPanel 
-            symbol={symbol}
-            currentPrice={currentPrice}
-            analysis={analysis}
-            isLoading={analysisLoading}
-            currency={currency}
-          />
-
-          <CompanyInsights
-            symbol={symbol}
-            analysis={analysis}
-            quote={quoteData}
-            isLoading={analysisLoading || quoteLoading}
-          />
-
-          <PromotionalMessage />
+          <div className="lg:col-span-4 space-y-8">
+             <AnalysisPanel 
+               symbol={symbol}
+               currentPrice={currentPrice}
+               analysis={analysis}
+               isLoading={analysisLoading}
+               currency={currency}
+             />
+             
+             <PromotionalMessage />
+          </div>
         </div>
       </div>
     </div>
