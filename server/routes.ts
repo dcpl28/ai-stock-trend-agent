@@ -1,19 +1,32 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
+import YahooFinance from "yahoo-finance2";
+
+const yahooFinance = new YahooFinance();
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-function resolveYahooSymbol(symbol: string): string {
-  if (symbol.startsWith("KLSE:")) {
-    return `${symbol.replace("KLSE:", "")}.KL`;
-  } else if (symbol.startsWith("MYX:")) {
-    return `${symbol.replace("MYX:", "")}.KL`;
+async function resolveYahooSymbol(symbol: string): Promise<string> {
+  if (symbol.startsWith("KLSE:") || symbol.startsWith("MYX:")) {
+    const ticker = symbol.replace("KLSE:", "").replace("MYX:", "");
+    const directSymbol = `${ticker}.KL`;
+    try {
+      const searchResult: any = await yahooFinance.search(ticker);
+      const klseMatch = searchResult.quotes?.find((q: any) =>
+        q.symbol?.endsWith(".KL") && q.quoteType === "EQUITY"
+      );
+      if (klseMatch) return klseMatch.symbol;
+    } catch {}
+    return directSymbol;
   } else if (symbol.includes(":")) {
-    return symbol.split(":")[1];
+    const exchange = symbol.split(":")[0].toUpperCase();
+    const ticker = symbol.split(":")[1];
+    if (exchange === "NASDAQ" || exchange === "NYSE") return ticker;
+    return ticker;
   }
   return symbol;
 }
@@ -37,14 +50,33 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  app.get("/api/search/:query", async (req, res) => {
+    try {
+      const { query } = req.params;
+      const result: any = await yahooFinance.search(query);
+      const quotes = (result.quotes || [])
+        .filter((q: any) => q.quoteType === "EQUITY")
+        .slice(0, 10)
+        .map((q: any) => ({
+          symbol: q.symbol,
+          name: q.shortname || q.longname || q.symbol,
+          exchange: q.exchange,
+          type: q.quoteType,
+        }));
+      res.json(quotes);
+    } catch (error: any) {
+      console.error("Search error:", error.message);
+      res.status(500).json({ error: "Failed to search", details: error.message });
+    }
+  });
+
   app.get("/api/stock/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
       const range = (req.query.range as string) || "6mo";
       const interval = (req.query.interval as string) || "1d";
-      const yahooSymbol = resolveYahooSymbol(symbol);
+      const yahooSymbol = await resolveYahooSymbol(symbol);
 
-      const yahooFinance = (await import("yahoo-finance2")).default;
       const result: any = await yahooFinance.chart(yahooSymbol, {
         period1: getStartDate(range),
         period2: new Date(),
@@ -82,8 +114,7 @@ export async function registerRoutes(
   app.get("/api/quote/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
-      const yahooSymbol = resolveYahooSymbol(symbol);
-      const yahooFinance = (await import("yahoo-finance2")).default;
+      const yahooSymbol = await resolveYahooSymbol(symbol);
       const quote: any = await yahooFinance.quote(yahooSymbol);
 
       res.json({

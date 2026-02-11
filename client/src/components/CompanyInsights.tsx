@@ -1,154 +1,131 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Briefcase, Building2, TrendingUp, AlertCircle, Newspaper, ExternalLink } from "lucide-react";
+import { Building2, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
 
-interface NewsItem {
-  id: number;
-  title: string;
-  source: string;
-  time: string;
-  sentiment: 'positive' | 'negative' | 'neutral';
+interface QuoteData {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  volume: number;
+  marketCap: number;
+  peRatio: number;
+  eps: number;
+  dividendYield: number;
+  fiftyTwoWeekHigh: number;
+  fiftyTwoWeekLow: number;
+  averageVolume: number;
+  currency: string;
+  exchange: string;
+  marketState: string;
+}
+
+interface AnalysisData {
+  companyProfile?: {
+    business: string;
+    strengths: string[];
+    risks: string[];
+  };
 }
 
 interface CompanyInsightsProps {
   symbol: string;
+  analysis?: AnalysisData;
+  quote?: QuoteData;
+  isLoading: boolean;
 }
 
-export function CompanyInsights({ symbol }: CompanyInsightsProps) {
-  // Mock data generation based on symbol
-  const isKLSE = symbol.includes("KLSE") || symbol.includes(".KL");
-  
-  const companyInfo = {
-    business: isKLSE 
-      ? "Leading financial services group in Southeast Asia, offering banking, insurance, and asset management."
-      : "Multinational technology company focusing on e-commerce, cloud computing, and artificial intelligence.",
-    strengths: [
-      "Strong market capitalization and liquidity",
-      "Consistent dividend yield history",
-      "Dominant market share in key segments"
-    ],
-    weaknesses: [
-      "Exposure to regional economic volatility",
-      "Increasing regulatory compliance costs"
-    ]
-  };
+export function CompanyInsights({ symbol, analysis, quote, isLoading }: CompanyInsightsProps) {
+  const currency = quote?.currency || "USD";
 
-  const news: NewsItem[] = [
-    {
-      id: 1,
-      title: `${symbol} Reports Strong Q3 Earnings Growth`,
-      source: "Financial Daily",
-      time: "2h ago",
-      sentiment: "positive"
-    },
-    {
-      id: 2,
-      title: "Analysts Upgrade Price Target Following Expansion News",
-      source: "Market Watch",
-      time: "5h ago",
-      sentiment: "positive"
-    },
-    {
-      id: 3,
-      title: "Sector Analysis: Banking Stocks Face Headwinds",
-      source: "Global Finance",
-      time: "1d ago",
-      sentiment: "neutral"
-    },
-    {
-      id: 4,
-      title: "New Strategic Partnership Announced",
-      source: "Business Insider",
-      time: "2d ago",
-      sentiment: "positive"
-    }
-  ];
+  const formatLargeNumber = (num: number | undefined) => {
+    if (!num) return "N/A";
+    if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
+    return num.toFixed(2);
+  };
 
   return (
     <div className="space-y-6">
-      <Card className="glass-panel border-white/5">
-        <CardHeader className="pb-3 border-b border-white/5">
-          <CardTitle className="flex items-center gap-2 text-lg font-serif">
-            <Building2 className="w-5 h-5 text-primary" />
-            Company Profile
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 space-y-4">
-          <div className="space-y-2">
-            <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Core Business</h4>
-            <p className="text-sm text-foreground/90 leading-relaxed font-light">
-              {companyInfo.business}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {quote && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "Market Cap", value: `${currency} ${formatLargeNumber(quote.marketCap)}` },
+            { label: "P/E Ratio", value: quote.peRatio ? quote.peRatio.toFixed(2) : "N/A" },
+            { label: "EPS", value: quote.eps ? `${currency} ${quote.eps.toFixed(2)}` : "N/A" },
+            { label: "Div Yield", value: quote.dividendYield ? `${(quote.dividendYield * 100).toFixed(2)}%` : "N/A" },
+            { label: "Volume", value: formatLargeNumber(quote.volume) },
+            { label: "Avg Vol", value: formatLargeNumber(quote.averageVolume) },
+            { label: "52W High", value: quote.fiftyTwoWeekHigh ? `${currency} ${quote.fiftyTwoWeekHigh.toFixed(2)}` : "N/A" },
+            { label: "52W Low", value: quote.fiftyTwoWeekLow ? `${currency} ${quote.fiftyTwoWeekLow.toFixed(2)}` : "N/A" },
+          ].map((item, i) => (
+            <div key={i} className="glass-panel p-4 rounded-lg border border-white/5" data-testid={`card-metric-${i}`}>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground block mb-1">{item.label}</span>
+              <span className="text-lg font-mono text-foreground">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {isLoading ? (
+        <Card className="glass-panel border-white/5">
+          <CardContent className="py-12 flex flex-col items-center justify-center text-muted-foreground">
+            <Loader2 className="w-6 h-6 animate-spin text-primary/40 mb-3" />
+            <span className="text-sm font-light">Loading company insights...</span>
+          </CardContent>
+        </Card>
+      ) : analysis?.companyProfile ? (
+        <Card className="glass-panel border-white/5">
+          <CardHeader className="pb-3 border-b border-white/5">
+            <CardTitle className="flex items-center gap-2 text-lg font-serif">
+              <Building2 className="w-5 h-5 text-primary" />
+              Company Profile
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-4">
             <div className="space-y-2">
-              <h4 className="text-xs uppercase tracking-widest text-green-500/80 font-medium flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> Strengths
-              </h4>
-              <ul className="space-y-1">
-                {companyInfo.strengths.map((item, i) => (
-                  <li key={i} className="text-xs text-foreground/80 flex items-start gap-2">
-                    <span className="w-1 h-1 rounded-full bg-green-500 mt-1.5 shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Core Business</h4>
+              <p className="text-sm text-foreground/90 leading-relaxed font-light" data-testid="text-company-business">
+                {analysis.companyProfile.business}
+              </p>
             </div>
             
-            <div className="space-y-2">
-              <h4 className="text-xs uppercase tracking-widest text-red-400/80 font-medium flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> Risks
-              </h4>
-              <ul className="space-y-1">
-                {companyInfo.weaknesses.map((item, i) => (
-                  <li key={i} className="text-xs text-foreground/80 flex items-start gap-2">
-                    <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="text-xs uppercase tracking-widest text-green-500/80 font-medium flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> Strengths
+                </h4>
+                <ul className="space-y-1">
+                  {analysis.companyProfile.strengths.map((item, i) => (
+                    <li key={i} className="text-xs text-foreground/80 flex items-start gap-2" data-testid={`text-strength-${i}`}>
+                      <span className="w-1 h-1 rounded-full bg-green-500 mt-1.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="space-y-2">
+                <h4 className="text-xs uppercase tracking-widest text-red-400/80 font-medium flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> Risks
+                </h4>
+                <ul className="space-y-1">
+                  {analysis.companyProfile.risks.map((item, i) => (
+                    <li key={i} className="text-xs text-foreground/80 flex items-start gap-2" data-testid={`text-risk-${i}`}>
+                      <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass-panel border-white/5">
-        <CardHeader className="pb-3 border-b border-white/5">
-          <CardTitle className="flex items-center gap-2 text-lg font-serif">
-            <Newspaper className="w-5 h-5 text-primary" />
-            Recent Market News
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <ScrollArea className="h-[200px] pr-4">
-            <div className="space-y-4 pt-4">
-              {news.map((item) => (
-                <div key={item.id} className="group flex flex-col gap-1 border-b border-white/5 last:border-0 pb-3 last:pb-0">
-                  <div className="flex justify-between items-start gap-4">
-                    <h4 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer leading-tight">
-                      {item.title}
-                    </h4>
-                    <Badge variant="outline" className={`shrink-0 text-[10px] px-1.5 py-0 h-5 border-none ${
-                      item.sentiment === 'positive' ? 'bg-green-500/10 text-green-500' :
-                      item.sentiment === 'negative' ? 'bg-red-500/10 text-red-500' :
-                      'bg-white/5 text-muted-foreground'
-                    }`}>
-                      {item.sentiment}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center text-[10px] text-muted-foreground uppercase tracking-wider">
-                    <span>{item.source}</span>
-                    <span>{item.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

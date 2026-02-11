@@ -1,18 +1,60 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlignLeft, BrainCircuit } from "lucide-react";
+import { AlignLeft, BrainCircuit, Loader2 } from "lucide-react";
 import { AIResponseFooter } from "./PromotionalMessage";
+
+interface AnalysisData {
+  trend: 'bullish' | 'bearish' | 'neutral';
+  confidence: number;
+  patternAnalysis: string;
+  indicators: {
+    rsi: { value: number; signal: string };
+    macd: { value: string; signal: string };
+    trend: { value: string; signal: string };
+    support: number;
+    resistance: number;
+    ma20: number;
+    ma50: number;
+  };
+  sentiment: string;
+  recommendation: string;
+}
 
 interface AnalysisPanelProps {
   symbol: string;
   currentPrice: number;
-  trend: 'bullish' | 'bearish';
-  confidence: number;
+  analysis?: AnalysisData;
+  isLoading: boolean;
+  currency: string;
 }
 
-export function AnalysisPanel({ symbol, currentPrice, trend, confidence }: AnalysisPanelProps) {
-  const isBullish = trend === 'bullish';
+export function AnalysisPanel({ symbol, currentPrice, analysis, isLoading, currency }: AnalysisPanelProps) {
+  if (isLoading) {
+    return (
+      <Card className="glass-panel border-t-4 border-t-primary rounded-t-lg overflow-hidden">
+        <CardContent className="py-16 flex flex-col items-center justify-center text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin text-primary/40 mb-4" />
+          <span className="text-sm font-light tracking-wide">AI Analyzing {symbol}...</span>
+          <span className="text-xs text-muted-foreground/60 mt-1">Processing chart patterns & indicators</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!analysis) {
+    return (
+      <Card className="glass-panel border-t-4 border-t-primary rounded-t-lg overflow-hidden">
+        <CardContent className="py-16 flex flex-col items-center justify-center text-muted-foreground">
+          <BrainCircuit className="w-8 h-8 text-primary/20 mb-4" />
+          <span className="text-sm font-light">Search a symbol to get AI analysis</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isBullish = analysis.trend === 'bullish';
+  const isNeutral = analysis.trend === 'neutral';
 
   return (
     <div className="space-y-6">
@@ -25,36 +67,43 @@ export function AnalysisPanel({ symbol, currentPrice, trend, confidence }: Analy
               className={`px-4 py-1 text-xs font-bold tracking-widest uppercase border ${
                 isBullish 
                   ? 'border-[hsl(var(--chart-bullish))] text-[hsl(var(--chart-bullish))] bg-[hsl(var(--chart-bullish))]/5' 
+                  : isNeutral
+                  ? 'border-yellow-500 text-yellow-500 bg-yellow-500/5'
                   : 'border-[hsl(var(--chart-bearish))] text-[hsl(var(--chart-bearish))] bg-[hsl(var(--chart-bearish))]/5'
               }`}
+              data-testid="badge-trend"
             >
-              {trend}
+              {analysis.trend}
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
           <div className="grid grid-cols-2 gap-8 relative">
-            {/* Center Divider */}
             <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
             
             <div className="space-y-2">
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
                  <BrainCircuit className="w-3 h-3 text-primary" /> AI Pattern Analysis
               </span>
-              <div className="text-sm font-medium text-foreground leading-snug">
-                {isBullish 
-                  ? "Ascending Triangle Breakout detected. Higher lows confirm accumulation phase." 
-                  : "Head and Shoulders pattern forming. Distribution evident at resistance levels."}
+              <div className="text-sm font-medium text-foreground leading-snug" data-testid="text-pattern-analysis">
+                {analysis.patternAnalysis}
               </div>
             </div>
             
             <div className="space-y-2 pl-4">
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Confidence</span>
               <div className="flex items-center gap-2">
-                <span className="text-3xl font-serif text-primary">{confidence}%</span>
+                <span className="text-3xl font-serif text-primary" data-testid="text-confidence">{analysis.confidence}%</span>
               </div>
             </div>
           </div>
+
+          {analysis.sentiment && (
+            <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
+              <span className="text-[10px] text-primary uppercase tracking-widest font-medium block mb-1">Sentiment</span>
+              <p className="text-sm text-foreground/90 font-light" data-testid="text-sentiment">{analysis.sentiment}</p>
+            </div>
+          )}
 
           <div className="space-y-4">
             <h4 className="text-xs font-semibold text-foreground uppercase tracking-widest flex items-center gap-2 opacity-80">
@@ -63,17 +112,21 @@ export function AnalysisPanel({ symbol, currentPrice, trend, confidence }: Analy
             
             <div className="space-y-1">
                {[
-                 { label: 'RSI (14)', value: isBullish ? '64.2' : '32.1', status: isBullish ? 'Neutral' : 'Oversold' },
-                 { label: 'MACD', value: isBullish ? '+0.45' : '-0.12', status: isBullish ? 'Strong' : 'Weak' },
-                 { label: 'Trend', value: isBullish ? 'Upward' : 'Downward', status: 'Direction' }
+                 { label: 'RSI (14)', value: analysis.indicators.rsi.value.toFixed(1), status: analysis.indicators.rsi.signal },
+                 { label: 'MACD', value: analysis.indicators.macd.value, status: analysis.indicators.macd.signal },
+                 { label: 'Trend', value: analysis.indicators.trend.value, status: analysis.indicators.trend.signal },
+                 { label: 'Support', value: `${currency} ${analysis.indicators.support.toFixed(2)}`, status: 'Level' },
+                 { label: 'Resistance', value: `${currency} ${analysis.indicators.resistance.toFixed(2)}`, status: 'Level' },
+                 { label: 'MA(20)', value: `${currency} ${analysis.indicators.ma20.toFixed(2)}`, status: currentPrice > analysis.indicators.ma20 ? 'Above' : 'Below' },
+                 { label: 'MA(50)', value: `${currency} ${analysis.indicators.ma50.toFixed(2)}`, status: currentPrice > analysis.indicators.ma50 ? 'Above' : 'Below' },
                ].map((item, i) => (
-                 <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors rounded border-b border-white/5 last:border-0">
+                 <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors rounded border-b border-white/5 last:border-0" data-testid={`row-indicator-${i}`}>
                     <span className="text-sm text-muted-foreground font-light">{item.label}</span>
                     <div className="flex items-center gap-4">
                       <span className="text-sm font-mono text-foreground">{item.value}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded border border-white/10 ${
-                        item.status === 'Strong' || item.status === 'Support' ? 'text-green-400' : 
-                        item.status === 'Weak' || item.status === 'Resistance' ? 'text-red-400' :
+                        item.status === 'Strong' || item.status === 'Above' ? 'text-green-400' : 
+                        item.status === 'Weak' || item.status === 'Below' || item.status === 'Overbought' || item.status === 'Oversold' ? 'text-red-400' :
                         'text-muted-foreground'
                       }`}>
                         {item.status}
@@ -83,6 +136,13 @@ export function AnalysisPanel({ symbol, currentPrice, trend, confidence }: Analy
                ))}
             </div>
           </div>
+
+          {analysis.recommendation && (
+            <div className="p-3 bg-card/50 border border-white/5 rounded-lg">
+              <span className="text-[10px] text-primary uppercase tracking-widest font-medium block mb-1">Recommendation</span>
+              <p className="text-sm text-foreground/90 font-light" data-testid="text-recommendation">{analysis.recommendation}</p>
+            </div>
+          )}
 
           <div className="pt-2">
             <AIResponseFooter />
