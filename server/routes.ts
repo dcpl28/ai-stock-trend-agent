@@ -21,14 +21,31 @@ function getAIProvider(): { type: "openai" | "anthropic" | "replit"; } {
 async function resolveYahooSymbol(symbol: string): Promise<string> {
   if (symbol.startsWith("KLSE:") || symbol.startsWith("MYX:")) {
     const ticker = symbol.replace("KLSE:", "").replace("MYX:", "");
+
+    // If ticker is numeric, it's already a Bursa code
+    if (/^\d+$/.test(ticker)) {
+      return `${ticker}.KL`;
+    }
+
+    // Try direct ticker.KL first (e.g., MAYBANK.KL won't work, but 1155.KL will)
     const directSymbol = `${ticker}.KL`;
     try {
-      const searchResult: any = await yahooFinance.search(ticker);
-      const klseMatch = searchResult.quotes?.find((q: any) =>
-        q.symbol?.endsWith(".KL") && q.quoteType === "EQUITY"
-      );
-      if (klseMatch) return klseMatch.symbol;
+      const q: any = await yahooFinance.quote(directSymbol);
+      if (q && q.symbol) return directSymbol;
     } catch {}
+
+    // Search Yahoo Finance with multiple queries (Malaysian companies often have "Group" or "Berhad" suffix)
+    const searchQueries = [ticker, `${ticker} Group`, `${ticker} Berhad`, `${ticker} Bursa`, `${ticker} Malaysia`];
+    for (const query of searchQueries) {
+      try {
+        const searchResult: any = await yahooFinance.search(query);
+        const klseMatch = searchResult.quotes?.find((q: any) =>
+          q.symbol?.endsWith(".KL") && q.quoteType === "EQUITY"
+        );
+        if (klseMatch) return klseMatch.symbol;
+      } catch {}
+    }
+
     return directSymbol;
   } else if (symbol.includes(":")) {
     const exchange = symbol.split(":")[0].toUpperCase();
@@ -124,6 +141,10 @@ export async function registerRoutes(
       const { symbol } = req.params;
       const yahooSymbol = await resolveYahooSymbol(symbol);
       const quote: any = await yahooFinance.quote(yahooSymbol);
+
+      if (!quote || !quote.symbol) {
+        return res.status(404).json({ error: "Stock not found", details: `No quote data available for ${symbol}` });
+      }
 
       res.json({
         symbol: quote.symbol,

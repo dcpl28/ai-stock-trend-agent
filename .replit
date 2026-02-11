@@ -47,4 +47,7 @@ integrations = ["javascript_openai_ai_integrations:2.0.0"]
 [userenv]
 
 [userenv.shared]
-AI_PROVIDER = "replit"
+#AI_PROVIDER = "replit" #openai or anthropic 
+OPENAI_API_KEY = ''
+AI_PROVIDER = "openai"
+#ANTHROPIC_API_KEY = ''
