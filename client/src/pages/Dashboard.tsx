@@ -182,9 +182,9 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="space-y-8">
           
-          <div className="lg:col-span-8 space-y-6">
+          <div className="space-y-6">
              <div className="flex justify-between items-end border-b border-white/5 pb-2">
                 <div className="flex items-baseline gap-4">
                   <h2 className="text-3xl font-serif text-foreground" data-testid="text-symbol-name">
@@ -232,26 +232,24 @@ export default function Dashboard() {
                   No data available
                </div>
              )}
-
-             <CompanyInsights
-               symbol={symbol}
-               analysis={analysis}
-               quote={quoteData}
-               isLoading={analysisLoading || quoteLoading}
-             />
           </div>
 
-          <div className="lg:col-span-4 space-y-8">
-             <AnalysisPanel 
-               symbol={symbol}
-               currentPrice={currentPrice}
-               analysis={analysis}
-               isLoading={analysisLoading}
-               currency={currency}
-             />
-             
-             <PromotionalMessage />
-          </div>
+          <AnalysisPanel 
+            symbol={symbol}
+            currentPrice={currentPrice}
+            analysis={analysis}
+            isLoading={analysisLoading}
+            currency={currency}
+          />
+
+          <CompanyInsights
+            symbol={symbol}
+            analysis={analysis}
+            quote={quoteData}
+            isLoading={analysisLoading || quoteLoading}
+          />
+
+          <PromotionalMessage />
         </div>
       </div>
     </div>
