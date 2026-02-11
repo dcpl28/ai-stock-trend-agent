@@ -210,11 +210,11 @@ export default function Dashboard() {
               <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">Dexter Chia Private Clients</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight text-foreground" data-testid="text-app-title">
-              Market<span className="text-primary italic">Pro</span> Terminal
+              AI Stock <span className="text-primary italic">Trend</span> Terminal
             </h1>
             <p className="text-muted-foreground font-light tracking-wide text-sm max-w-md">
-              Institutional-grade analytics for the discerning investor. <br className="hidden md:block"/>
-              Managed by Dexter Chia, Licensed Remisier.
+              AI-Powered Chart Pattern & Trend Analytics for the Discerning Investor. <br className="hidden md:block"/>
+              Managed by Dexter Chia, Remisier from M+ Global.
             </p>
           </div>
           
@@ -235,10 +235,6 @@ export default function Dashboard() {
               </Button>
             </form>
             <div className="flex justify-between md:justify-end px-1">
-               <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1" data-testid="text-market-state">
-                 <span className={`w-1.5 h-1.5 rounded-full ${marketState === 'REGULAR' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
-                 {marketState === 'REGULAR' ? 'Market Open' : marketState === 'PRE' ? 'Pre-Market' : marketState === 'POST' ? 'After Hours' : 'Market Closed'}
-               </span>
             </div>
           </div>
         </header>
@@ -262,10 +258,6 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-                <span className="text-sm font-light text-muted-foreground tracking-wide flex items-center gap-2" data-testid="text-data-source">
-                   <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                   Live Market Data
-                </span>
              </div>
              
              {stockLoading ? (

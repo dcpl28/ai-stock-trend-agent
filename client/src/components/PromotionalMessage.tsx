@@ -48,11 +48,11 @@ export function PromotionalMessage() {
             </code>
             <div className="h-px w-8 bg-primary/30"></div>
 
-          <span className="text-[10px] text-primary/60 italic z-10">
-            Refer your friends/siblings/family members to get Freebies/Vouchers
-            every month.
-          </span>
-            </div>
+            <span className="text-[10px] text-primary/60 italic z-10">
+              Refer your friends/siblings/family members to get
+              Freebies/Vouchers every month.
+            </span>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -97,24 +97,6 @@ export function PromotionalMessage() {
 
 export function AIResponseFooter() {
   return (
-    <div className="mt-6 pt-4 border-t border-primary/10 text-xs text-muted-foreground font-light">
-      <div className="flex gap-3">
-        <div className="w-0.5 h-auto bg-gradient-to-b from-primary/50 to-transparent shrink-0"></div>
-        <div className="space-y-1">
-          <span className="text-primary font-medium uppercase tracking-wider text-[10px] block opacity-80">
-            Remisier's Outlook
-          </span>
-          <p className="leading-relaxed">
-            Market structure supports a bullish continuation. I recommend
-            scaling in at current levels.
-            <br />
-            <span className="opacity-80 mt-1 block">
-              For personalized entry/exit points, sign up with code{" "}
-              <strong className="text-primary font-serif">UBZQ</strong>.
-            </span>
-          </p>
-        </div>
-      </div>
-    </div>
+    <div className="mt-6 pt-4 border-t border-primary/10 text-xs text-muted-foreground font-light"></div>
   );
 }

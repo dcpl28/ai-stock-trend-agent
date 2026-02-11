@@ -51,8 +51,11 @@ export default function Login() {
               Dexter Chia Private Clients
             </span>
           </div>
-          <h1 className="text-4xl font-serif font-medium tracking-tight text-foreground" data-testid="text-login-title">
-            Market<span className="text-primary italic">Pro</span> Terminal
+          <h1
+            className="text-4xl font-serif font-medium tracking-tight text-foreground"
+            data-testid="text-login-title"
+          >
+            AI Stock <span className="text-primary italic">Trend</span> Terminal
           </h1>
           <p className="text-muted-foreground font-light tracking-wide text-sm mt-2">
             Please sign in to access the analysis tools
@@ -61,7 +64,10 @@ export default function Login() {
 
         <div className="flex gap-2 mb-6">
           <button
-            onClick={() => { setMode("user"); setError(""); }}
+            onClick={() => {
+              setMode("user");
+              setError("");
+            }}
             className={`flex-1 py-2.5 text-xs uppercase tracking-widest font-medium rounded-lg transition-all cursor-pointer ${
               mode === "user"
                 ? "bg-primary/20 text-primary border border-primary/30"
@@ -73,7 +79,10 @@ export default function Login() {
             Client Login
           </button>
           <button
-            onClick={() => { setMode("admin"); setError(""); }}
+            onClick={() => {
+              setMode("admin");
+              setError("");
+            }}
             className={`flex-1 py-2.5 text-xs uppercase tracking-widest font-medium rounded-lg transition-all cursor-pointer ${
               mode === "admin"
                 ? "bg-primary/20 text-primary border border-primary/30"
@@ -88,7 +97,10 @@ export default function Login() {
 
         <div className="bg-card/50 border border-primary/10 rounded-xl p-6 shadow-2xl shadow-black/40">
           {error && (
-            <div className="flex items-center gap-2 text-red-400 text-sm mb-4 bg-red-500/10 border border-red-500/20 rounded-lg p-3" data-testid="text-login-error">
+            <div
+              className="flex items-center gap-2 text-red-400 text-sm mb-4 bg-red-500/10 border border-red-500/20 rounded-lg p-3"
+              data-testid="text-login-error"
+            >
               <AlertCircle className="w-4 h-4 shrink-0" />
               {error}
             </div>
@@ -97,7 +109,9 @@ export default function Login() {
           {mode === "user" ? (
             <form onSubmit={handleUserLogin} className="space-y-4">
               <div>
-                <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">Email</label>
+                <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">
+                  Email
+                </label>
                 <Input
                   type="email"
                   placeholder="your@email.com"
@@ -109,7 +123,9 @@ export default function Login() {
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">Password</label>
+                <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">
+                  Password
+                </label>
                 <Input
                   type="password"
                   placeholder="Enter your password"
@@ -126,7 +142,11 @@ export default function Login() {
                 className="w-full h-11 bg-primary text-primary-foreground font-medium tracking-widest hover:bg-primary/90 cursor-pointer"
                 data-testid="button-login"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "SIGN IN"}
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "SIGN IN"
+                )}
               </Button>
               <p className="text-[11px] text-muted-foreground/60 text-center mt-3">
                 Sessions expire after 15 minutes of login
@@ -135,7 +155,9 @@ export default function Login() {
           ) : (
             <form onSubmit={handleAdminLogin} className="space-y-4">
               <div>
-                <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">Admin Password</label>
+                <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">
+                  Admin Password
+                </label>
                 <Input
                   type="password"
                   placeholder="Enter admin password"
@@ -152,7 +174,11 @@ export default function Login() {
                 className="w-full h-11 bg-primary text-primary-foreground font-medium tracking-widest hover:bg-primary/90 cursor-pointer"
                 data-testid="button-admin-login"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ADMIN LOGIN"}
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "ADMIN LOGIN"
+                )}
               </Button>
               <p className="text-[11px] text-muted-foreground/60 text-center mt-3">
                 Admin access lets you manage allowed users
