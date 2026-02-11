@@ -62,7 +62,9 @@ Pre-built integration modules provided by Replit:
 
 3. **Yahoo Finance symbol resolution**: Custom logic maps exchange prefixes (KLSE:, MYX:, NASDAQ:, NYSE:) to Yahoo Finance ticker format, with search fallback for Malaysian stocks.
 
-4. **In-memory user storage**: Users table exists in Drizzle schema but the active storage implementation is in-memory (`MemStorage`), suggesting auth is not yet fully implemented with persistence.
+4. **Authentication system**: Session-based auth with 15-minute auto-expiry. Admin logs in with ADMIN_PASSWORD secret to manage allowed users via /admin config page. Users log in with email/password (bcrypt hashed). The /api/analysis endpoint is protected behind auth. Stock data and charts are viewable by all, but AI analysis requires login.
+
+5. **Password security**: User passwords are hashed with bcrypt (10 salt rounds) before storage. Admin password is read from ADMIN_PASSWORD environment secret (required).
 
 ## External Dependencies
 
@@ -82,6 +84,7 @@ Pre-built integration modules provided by Replit:
 - `DATABASE_URL`: PostgreSQL connection string (required)
 - `AI_INTEGRATIONS_OPENAI_API_KEY`: Default OpenAI/Replit AI API key
 - `AI_INTEGRATIONS_OPENAI_BASE_URL`: OpenAI API base URL (for Replit proxy)
+- `ADMIN_PASSWORD`: Admin password for user management panel (required secret)
 
 ### Key NPM Packages
 - `express` + `http`: Server framework

@@ -12,7 +12,10 @@ const replitOpenai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error("ADMIN_PASSWORD environment variable is required");
+}
 
 function getAIProvider(): { type: "openai" | "anthropic" | "replit"; } {
   const provider = (process.env.AI_PROVIDER || "replit").toLowerCase();
@@ -103,7 +106,11 @@ export async function registerRoutes(
       }
 
       const user = await storage.getUserByEmail(email.toLowerCase());
-      if (!user || user.password !== password) {
+      if (!user) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      const valid = await storage.verifyPassword(user, password);
+      if (!valid) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 

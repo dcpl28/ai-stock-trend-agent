@@ -1,6 +1,9 @@
 import { type User, type InsertUser, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
+
+const SALT_ROUNDS = 10;
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -9,6 +12,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   deleteUser(id: string): Promise<void>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
+  verifyPassword(user: User, password: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -23,9 +27,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    const hashedPassword = await bcrypt.hash(insertUser.password, SALT_ROUNDS);
     const [user] = await db.insert(users).values({
-      ...insertUser,
       email: insertUser.email.toLowerCase(),
+      password: hashedPassword,
     }).returning();
     return user;
   }
@@ -39,11 +44,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined> {
-    const updateData: Partial<InsertUser> = {};
+    const updateData: Partial<{ email: string; password: string }> = {};
     if (data.email) updateData.email = data.email.toLowerCase();
-    if (data.password) updateData.password = data.password;
+    if (data.password) updateData.password = await bcrypt.hash(data.password, SALT_ROUNDS);
     const [user] = await db.update(users).set(updateData).where(eq(users.id, id)).returning();
     return user;
+  }
+
+  async verifyPassword(user: User, password: string): Promise<boolean> {
+    return bcrypt.compare(password, user.password);
   }
 }
 
