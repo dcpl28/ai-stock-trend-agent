@@ -226,6 +226,25 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/news/:symbol", async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const yahooSymbol = await resolveYahooSymbol(symbol);
+      const searchResult: any = await yahooFinance.search(yahooSymbol);
+      const news = (searchResult.news || []).slice(0, 8).map((article: any) => ({
+        title: article.title,
+        publisher: article.publisher,
+        link: article.link,
+        publishedAt: article.providerPublishTime ? new Date(article.providerPublishTime * 1000).toISOString() : null,
+        thumbnail: article.thumbnail?.resolutions?.[0]?.url || null,
+      }));
+      res.json(news);
+    } catch (error: any) {
+      console.error("News error:", error.message);
+      res.json([]);
+    }
+  });
+
   app.get("/api/search/:query", async (req, res) => {
     try {
       const { query } = req.params;

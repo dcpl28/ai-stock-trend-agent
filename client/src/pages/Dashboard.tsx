@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import TradingViewChart from "@/components/TradingViewChart";
 import { StockChart } from "@/components/StockChart";
 import { CompanyInsights } from "@/components/CompanyInsights";
+import { StockNews } from "@/components/StockNews";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -323,6 +324,8 @@ export default function Dashboard() {
                quote={quoteData}
                isLoading={analysisLoading || quoteLoading}
              />
+
+             <StockNews symbol={symbol} />
           </div>
 
           <div className="lg:col-span-4 space-y-8">
