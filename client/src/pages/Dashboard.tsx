@@ -6,7 +6,7 @@ import { CompanyInsights } from "@/components/CompanyInsights";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2, BrainCircuit } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit, Info } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 
@@ -242,12 +242,25 @@ export default function Dashboard() {
                </div>
              ) : analysis?.patternAnalysis ? (
                <div className="glass-panel p-4 rounded-lg border border-primary/10">
-                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1 mb-2">
-                   <BrainCircuit className="w-3 h-3 text-primary" /> AI Pattern Analysis
-                 </span>
-                 <p className="text-sm text-foreground/90 font-light leading-relaxed" data-testid="text-pattern-analysis-below-chart">
-                   {analysis.patternAnalysis}
-                 </p>
+                 <div className="flex items-center justify-between mb-2">
+                   <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                     <BrainCircuit className="w-3 h-3 text-primary" /> AI Pattern Analysis
+                   </span>
+                   <div className="group relative">
+                     <Info className="w-3.5 h-3.5 text-muted-foreground/50 hover:text-primary cursor-help transition-colors" />
+                     <div className="absolute right-0 top-5 z-50 hidden group-hover:block w-64 p-3 bg-card border border-primary/20 rounded-lg shadow-xl text-[11px] text-muted-foreground leading-relaxed">
+                       This information is AI-generated. It does not guarantee any results and is only for your reference. For more professional advice, kindly PM Dexter.
+                     </div>
+                   </div>
+                 </div>
+                 <ul className="text-sm text-foreground/90 font-light leading-relaxed space-y-1.5 list-none" data-testid="text-pattern-analysis-below-chart">
+                   {analysis.patternAnalysis.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0).map((sentence, i) => (
+                     <li key={i} className="flex gap-2">
+                       <span className="text-primary/60 mt-0.5 shrink-0">•</span>
+                       <span>{sentence.trim()}</span>
+                     </li>
+                   ))}
+                 </ul>
                </div>
              ) : null}
 

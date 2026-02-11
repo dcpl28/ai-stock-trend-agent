@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlignLeft, BrainCircuit, Loader2 } from "lucide-react";
+import { AlignLeft, BrainCircuit, Loader2, Info } from "lucide-react";
 import { AIResponseFooter } from "./PromotionalMessage";
 
 interface AnalysisData {
@@ -87,7 +87,15 @@ export function AnalysisPanel({ symbol, currentPrice, analysis, isLoading, curre
 
           {analysis.sentiment && (
             <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
-              <span className="text-[10px] text-primary uppercase tracking-widest font-medium block mb-1">Sentiment</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] text-primary uppercase tracking-widest font-medium">Market Sentiment</span>
+                <div className="group relative">
+                  <Info className="w-3.5 h-3.5 text-muted-foreground/50 hover:text-primary cursor-help transition-colors" />
+                  <div className="absolute right-0 top-5 z-50 hidden group-hover:block w-64 p-3 bg-card border border-primary/20 rounded-lg shadow-xl text-[11px] text-muted-foreground leading-relaxed">
+                    This information is AI-generated. It does not guarantee any results and is only for your reference. For more professional advice, kindly PM Dexter.
+                  </div>
+                </div>
+              </div>
               <p className="text-sm text-foreground/90 font-light" data-testid="text-sentiment">{analysis.sentiment}</p>
             </div>
           )}
@@ -126,7 +134,15 @@ export function AnalysisPanel({ symbol, currentPrice, analysis, isLoading, curre
 
           {analysis.recommendation && (
             <div className="p-3 bg-card/50 border border-white/5 rounded-lg">
-              <span className="text-[10px] text-primary uppercase tracking-widest font-medium block mb-1">Recommendation</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] text-primary uppercase tracking-widest font-medium">Recommendation</span>
+                <div className="group relative">
+                  <Info className="w-3.5 h-3.5 text-muted-foreground/50 hover:text-primary cursor-help transition-colors" />
+                  <div className="absolute right-0 top-5 z-50 hidden group-hover:block w-64 p-3 bg-card border border-primary/20 rounded-lg shadow-xl text-[11px] text-muted-foreground leading-relaxed">
+                    This information is AI-generated. It does not guarantee any results and is only for your reference. For more professional advice, kindly PM Dexter.
+                  </div>
+                </div>
+              </div>
               <p className="text-sm text-foreground/90 font-light" data-testid="text-recommendation">{analysis.recommendation}</p>
             </div>
           )}
