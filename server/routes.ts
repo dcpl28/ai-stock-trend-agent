@@ -1,14 +1,26 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import YahooFinance from "yahoo-finance2";
 
 const yahooFinance = new YahooFinance();
 
-const openai = new OpenAI({
+const defaultOpenai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+function getOpenAIClient(customKey?: string): OpenAI {
+  if (customKey) {
+    return new OpenAI({ apiKey: customKey });
+  }
+  return defaultOpenai;
+}
+
+function getAnthropicClient(customKey: string): Anthropic {
+  return new Anthropic({ apiKey: customKey });
+}
 
 async function resolveYahooSymbol(symbol: string): Promise<string> {
   if (symbol.startsWith("KLSE:") || symbol.startsWith("MYX:")) {
@@ -143,7 +155,7 @@ export async function registerRoutes(
 
   app.post("/api/analysis", async (req, res) => {
     try {
-      const { symbol, candles, quote } = req.body;
+      const { symbol, candles, quote, provider, apiKey } = req.body;
 
       if (!symbol || !candles || candles.length === 0) {
         return res.status(400).json({ error: "Symbol and candle data are required" });
@@ -200,14 +212,28 @@ Provide your analysis in the following JSON format exactly:
 
 Be accurate with your technical calculations. Base RSI, MACD, and moving averages on the actual price data provided. Return ONLY valid JSON, no markdown.`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.2",
-        messages: [{ role: "user", content: prompt }],
-        max_completion_tokens: 1500,
-        temperature: 0.3,
-      });
+      let content = "";
 
-      const content = response.choices[0]?.message?.content || "{}";
+      if (provider === "anthropic" && apiKey) {
+        const anthropic = getAnthropicClient(apiKey);
+        const response = await anthropic.messages.create({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1500,
+          temperature: 0.3,
+          messages: [{ role: "user", content: prompt }],
+        });
+        content = response.content[0].type === "text" ? response.content[0].text : "{}";
+      } else {
+        const client = getOpenAIClient(provider === "openai" && apiKey ? apiKey : undefined);
+        const model = provider === "openai" && apiKey ? "gpt-4o" : "gpt-5.2";
+        const response = await client.chat.completions.create({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          max_completion_tokens: 1500,
+          temperature: 0.3,
+        });
+        content = response.choices[0]?.message?.content || "{}";
+      }
 
       let analysis;
       try {
