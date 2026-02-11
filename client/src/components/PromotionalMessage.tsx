@@ -97,6 +97,6 @@ export function PromotionalMessage() {
 
 export function AIResponseFooter() {
   return (
-    <div className="mt-6 pt-4 border-t border-primary/10 text-xs text-muted-foreground font-light"></div>
+    <div></div>
   );
 }

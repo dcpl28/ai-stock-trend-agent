@@ -51,26 +51,6 @@ export function CompanyInsights({ symbol, analysis, quote, isLoading }: CompanyI
 
   return (
     <div className="space-y-6">
-      {quote && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Market Cap", value: `${currency} ${formatLargeNumber(quote.marketCap)}` },
-            { label: "P/E Ratio", value: quote.peRatio ? quote.peRatio.toFixed(2) : "N/A" },
-            { label: "EPS", value: quote.eps ? `${currency} ${quote.eps.toFixed(2)}` : "N/A" },
-            { label: "Div Yield", value: quote.dividendYield ? `${(quote.dividendYield * 100).toFixed(2)}%` : "N/A" },
-            { label: "Volume", value: formatLargeNumber(quote.volume) },
-            { label: "Avg Vol", value: formatLargeNumber(quote.averageVolume) },
-            { label: "52W High", value: quote.fiftyTwoWeekHigh ? `${currency} ${quote.fiftyTwoWeekHigh.toFixed(2)}` : "N/A" },
-            { label: "52W Low", value: quote.fiftyTwoWeekLow ? `${currency} ${quote.fiftyTwoWeekLow.toFixed(2)}` : "N/A" },
-          ].map((item, i) => (
-            <div key={i} className="glass-panel p-4 rounded-lg border border-white/5" data-testid={`card-metric-${i}`}>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground block mb-1">{item.label}</span>
-              <span className="text-lg font-mono text-foreground">{item.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {isLoading ? (
         <Card className="glass-panel border-white/5">
           <CardContent className="py-12 flex flex-col items-center justify-center text-muted-foreground">
