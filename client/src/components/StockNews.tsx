@@ -56,8 +56,8 @@ export function StockNews({ symbol }: StockNewsProps) {
   return (
     <Card className="glass-panel border-white/5" data-testid="card-stock-news">
       <CardHeader className="pb-3 border-b border-white/5">
-        <CardTitle className="flex items-center gap-2 text-2xl font-serif">
-          <Newspaper className="w-5 h-5 text-primary" />
+        <CardTitle className="flex items-center gap-2 text-[10px] text-primary uppercase tracking-widest font-medium">
+          <Newspaper className="w-4 h-4 text-primary" />
           Latest News
         </CardTitle>
       </CardHeader>
