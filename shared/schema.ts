@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,6 +7,10 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  disabled: boolean("disabled").default(false).notNull(),
+  lastIp: text("last_ip"),
+  lastLoginAt: timestamp("last_login_at"),
+  requestCount: integer("request_count").default(0).notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

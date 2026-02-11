@@ -109,10 +109,16 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
+      if (user.disabled) {
+        return res.status(403).json({ error: "Your account has been disabled. Please contact admin." });
+      }
       const valid = await storage.verifyPassword(user, password);
       if (!valid) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
+
+      const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.ip || "unknown";
+      await storage.updateLoginInfo(user.id, clientIp);
 
       req.session.userId = user.id;
       req.session.email = user.email;
@@ -173,9 +179,30 @@ export async function registerRoutes(
   app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
     try {
       const users = await storage.getAllUsers();
-      res.json(users.map(u => ({ id: u.id, email: u.email })));
+      res.json(users.map(u => ({
+        id: u.id,
+        email: u.email,
+        disabled: u.disabled,
+        lastIp: u.lastIp,
+        lastLoginAt: u.lastLoginAt,
+        requestCount: u.requestCount,
+      })));
     } catch (error: any) {
       res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/toggle", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { disabled } = req.body;
+      const user = await storage.toggleUserDisabled(id, disabled);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ id: user.id, email: user.email, disabled: user.disabled });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to update user" });
     }
   });
 
@@ -359,6 +386,10 @@ export async function registerRoutes(
 
       if (!symbol || !candles || candles.length === 0) {
         return res.status(400).json({ error: "Symbol and candle data are required" });
+      }
+
+      if (req.session.userId && req.session.userId !== "admin") {
+        await storage.incrementRequestCount(req.session.userId);
       }
 
       const recentCandles = candles.slice(-60);

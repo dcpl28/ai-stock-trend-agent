@@ -1,6 +1,6 @@
 import { type User, type InsertUser, users } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 10;
@@ -13,6 +13,9 @@ export interface IStorage {
   deleteUser(id: string): Promise<void>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
   verifyPassword(user: User, password: string): Promise<boolean>;
+  updateLoginInfo(id: string, ip: string): Promise<void>;
+  incrementRequestCount(id: string): Promise<void>;
+  toggleUserDisabled(id: string, disabled: boolean): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -53,6 +56,24 @@ export class DatabaseStorage implements IStorage {
 
   async verifyPassword(user: User, password: string): Promise<boolean> {
     return bcrypt.compare(password, user.password);
+  }
+
+  async updateLoginInfo(id: string, ip: string): Promise<void> {
+    await db.update(users).set({
+      lastIp: ip,
+      lastLoginAt: new Date(),
+    }).where(eq(users.id, id));
+  }
+
+  async incrementRequestCount(id: string): Promise<void> {
+    await db.update(users).set({
+      requestCount: sql`${users.requestCount} + 1`,
+    }).where(eq(users.id, id));
+  }
+
+  async toggleUserDisabled(id: string, disabled: boolean): Promise<User | undefined> {
+    const [user] = await db.update(users).set({ disabled }).where(eq(users.id, id)).returning();
+    return user;
   }
 }
 
