@@ -83,11 +83,11 @@ export function PromotionalMessage() {
         <div className="grid grid-cols-2 gap-2 pt-2 opacity-70">
           <div className="flex items-center justify-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
             <ShieldCheck className="w-3 h-3 text-primary" />
-            <span>Trusted Services</span>
+            <span>Trusted Services.</span>
           </div>
           <div className="flex items-center justify-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
             <Briefcase className="w-3 h-3 text-primary" />
-            <span>Safeguard your $$</span>
+            <span>Your Assets. Secured.</span>
           </div>
         </div>
       </div>
