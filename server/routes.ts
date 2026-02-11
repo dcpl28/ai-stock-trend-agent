@@ -289,7 +289,7 @@ export async function registerRoutes(
         period1: getStartDate(range),
         period2: new Date(),
         interval: interval as any,
-      });
+      }, { validateResult: false });
 
       const quotes = result.quotes || [];
       const candles = quotes
