@@ -79,17 +79,15 @@ export function AnalysisPanel({ symbol, currentPrice, analysis, isLoading, curre
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
           <div className="space-y-2">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-              AI Conviction Score (%)
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">AI Conviction Score (%)</span>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-serif text-primary" data-testid="text-confidence">{analysis.confidence}%</span>
               <span className="group relative">
-                <Info className="w-3 h-3 text-muted-foreground/50 hover:text-primary cursor-help transition-colors" />
-                <span className="absolute left-0 top-4 z-50 hidden group-hover:block w-56 p-2.5 bg-card border border-primary/20 rounded-lg shadow-xl text-[11px] text-muted-foreground leading-relaxed normal-case tracking-normal">
+                <Info className="w-4 h-4 text-muted-foreground/50 hover:text-primary cursor-help transition-colors" />
+                <span className="absolute left-0 top-6 z-50 hidden group-hover:block w-56 p-2.5 bg-card border border-primary/20 rounded-lg shadow-xl text-[11px] text-muted-foreground leading-relaxed">
                   Ranges from 0–100%. A higher score means the AI sees clearer patterns and feels stronger about its assessment. A lower score indicates mixed or uncertain signals. For reference only — not a guarantee.
                 </span>
               </span>
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-3xl font-serif text-primary" data-testid="text-confidence">{analysis.confidence}%</span>
             </div>
           </div>
 
