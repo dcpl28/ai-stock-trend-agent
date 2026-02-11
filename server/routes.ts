@@ -55,7 +55,7 @@ async function resolveYahooSymbol(symbol: string): Promise<string> {
     const directSymbol = `${ticker}.KL`;
     try {
       const q: any = await yahooFinance.quote(directSymbol);
-      if (q && q.symbol) return directSymbol;
+      if (q && q.symbol && q.currency && q.regularMarketPrice < 1e6) return directSymbol;
     } catch {}
 
     const searchQueries = [ticker, `${ticker} Group`, `${ticker} Berhad`, `${ticker} Bursa`, `${ticker} Malaysia`];
