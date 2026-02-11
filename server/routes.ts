@@ -6,20 +6,16 @@ import YahooFinance from "yahoo-finance2";
 
 const yahooFinance = new YahooFinance();
 
-const defaultOpenai = new OpenAI({
+const replitOpenai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-function getOpenAIClient(customKey?: string): OpenAI {
-  if (customKey) {
-    return new OpenAI({ apiKey: customKey });
-  }
-  return defaultOpenai;
-}
-
-function getAnthropicClient(customKey: string): Anthropic {
-  return new Anthropic({ apiKey: customKey });
+function getAIProvider(): { type: "openai" | "anthropic" | "replit"; } {
+  const provider = (process.env.AI_PROVIDER || "replit").toLowerCase();
+  if (provider === "openai" && process.env.OPENAI_API_KEY) return { type: "openai" };
+  if (provider === "anthropic" && process.env.ANTHROPIC_API_KEY) return { type: "anthropic" };
+  return { type: "replit" };
 }
 
 async function resolveYahooSymbol(symbol: string): Promise<string> {
@@ -155,7 +151,7 @@ export async function registerRoutes(
 
   app.post("/api/analysis", async (req, res) => {
     try {
-      const { symbol, candles, quote, provider, apiKey } = req.body;
+      const { symbol, candles, quote } = req.body;
 
       if (!symbol || !candles || candles.length === 0) {
         return res.status(400).json({ error: "Symbol and candle data are required" });
@@ -213,9 +209,10 @@ Provide your analysis in the following JSON format exactly:
 Be accurate with your technical calculations. Base RSI, MACD, and moving averages on the actual price data provided. Return ONLY valid JSON, no markdown.`;
 
       let content = "";
+      const aiConfig = getAIProvider();
 
-      if (provider === "anthropic" && apiKey) {
-        const anthropic = getAnthropicClient(apiKey);
+      if (aiConfig.type === "anthropic") {
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
         const response = await anthropic.messages.create({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1500,
@@ -223,11 +220,18 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
           messages: [{ role: "user", content: prompt }],
         });
         content = response.content[0].type === "text" ? response.content[0].text : "{}";
-      } else {
-        const client = getOpenAIClient(provider === "openai" && apiKey ? apiKey : undefined);
-        const model = provider === "openai" && apiKey ? "gpt-4o" : "gpt-5.2";
+      } else if (aiConfig.type === "openai") {
+        const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
         const response = await client.chat.completions.create({
-          model,
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          max_completion_tokens: 1500,
+          temperature: 0.3,
+        });
+        content = response.choices[0]?.message?.content || "{}";
+      } else {
+        const response = await replitOpenai.chat.completions.create({
+          model: "gpt-5.2",
           messages: [{ role: "user", content: prompt }],
           max_completion_tokens: 1500,
           temperature: 0.3,

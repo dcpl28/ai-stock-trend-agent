@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Diamond, Crown, Loader2, BrainCircuit } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
-import { SettingsPanel, type AIProvider } from '@/components/SettingsPanel';
 import { apiRequest } from "@/lib/queryClient";
 
 interface CandleData {
@@ -74,22 +73,6 @@ interface AnalysisResponse {
 export default function Dashboard() {
   const [symbol, setSymbol] = useState("KLSE:MAYBANK");
   const [searchInput, setSearchInput] = useState("");
-  const [aiProvider, setAIProvider] = useState<AIProvider>(() => {
-    return (localStorage.getItem("ai_provider") as AIProvider) || "replit";
-  });
-  const [aiApiKey, setAIApiKey] = useState(() => {
-    return localStorage.getItem("ai_api_key") || "";
-  });
-
-  const handleProviderChange = (p: AIProvider) => {
-    setAIProvider(p);
-    localStorage.setItem("ai_provider", p);
-  };
-
-  const handleApiKeyChange = (key: string) => {
-    setAIApiKey(key);
-    localStorage.setItem("ai_api_key", key);
-  };
 
   const { data: stockData, isLoading: stockLoading, error: stockError } = useQuery<StockResponse>({
     queryKey: ['/api/stock', symbol],
@@ -116,21 +99,16 @@ export default function Dashboard() {
   });
 
   const { data: analysis, isLoading: analysisLoading } = useQuery<AnalysisResponse>({
-    queryKey: ['/api/analysis', symbol, stockData?.candles?.length, aiProvider, aiApiKey],
+    queryKey: ['/api/analysis', symbol, stockData?.candles?.length],
     queryFn: async () => {
-      const body: any = {
-        symbol,
-        candles: stockData?.candles || [],
-        quote: quoteData || null,
-      };
-      if (aiProvider !== "replit" && aiApiKey) {
-        body.provider = aiProvider;
-        body.apiKey = aiApiKey;
-      }
       const res = await fetch('/api/analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          symbol,
+          candles: stockData?.candles || [],
+          quote: quoteData || null,
+        }),
       });
       if (!res.ok) throw new Error('Failed to fetch analysis');
       return res.json();
@@ -195,13 +173,7 @@ export default function Dashboard() {
                 ANALYZE
               </Button>
             </form>
-            <div className="flex justify-between px-1">
-               <SettingsPanel
-                 provider={aiProvider}
-                 apiKey={aiApiKey}
-                 onProviderChange={handleProviderChange}
-                 onApiKeyChange={handleApiKeyChange}
-               />
+            <div className="flex justify-between md:justify-end px-1">
                <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1" data-testid="text-market-state">
                  <span className={`w-1.5 h-1.5 rounded-full ${marketState === 'REGULAR' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
                  {marketState === 'REGULAR' ? 'Market Open' : marketState === 'PRE' ? 'Pre-Market' : marketState === 'POST' ? 'After Hours' : 'Market Closed'}
