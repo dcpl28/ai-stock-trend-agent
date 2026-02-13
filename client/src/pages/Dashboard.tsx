@@ -143,6 +143,10 @@ export default function Dashboard() {
           quote: quoteData || null,
         }),
       });
+      if (res.status === 401) {
+        window.dispatchEvent(new CustomEvent('auth:expired'));
+        throw new Error('Session expired');
+      }
       if (!res.ok) throw new Error('Failed to fetch analysis');
       return res.json();
     },

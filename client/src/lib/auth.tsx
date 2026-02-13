@@ -49,10 +49,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const handleAuthExpired = () => checkSession();
+    window.addEventListener('auth:expired', handleAuthExpired);
     checkSession();
     timerRef.current = setInterval(checkSession, 30000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      window.removeEventListener('auth:expired', handleAuthExpired);
     };
   }, [checkSession]);
 
