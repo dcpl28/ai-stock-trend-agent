@@ -453,7 +453,15 @@ Dividend Yield: ${quote.dividendYield ? (quote.dividendYield * 100).toFixed(2) +
 Market State: ${quote.marketState}
 ` : "";
 
-      const prompt = `You are an expert stock market technical analyst. Analyze the following stock data for ${symbol} and provide a comprehensive analysis.
+      const isKLSE = symbol.startsWith("KLSE:") || symbol.startsWith("MYX:") || quote?.exchange === "KLS" || quote?.currency === "MYR";
+      const companyName = quote?.name || symbol;
+      const exchangeContext = isKLSE
+        ? `This is a Malaysian company listed on Bursa Malaysia (KLSE). The company name is "${companyName}". Currency is MYR (Malaysian Ringgit). Provide the company profile based on what you know about this specific Malaysian company.`
+        : `This stock trades on ${quote?.exchange || "a US exchange"}. The company name is "${companyName}". Provide the company profile based on what you know about this specific company.`;
+
+      const prompt = `You are an expert stock market technical analyst. Analyze the following stock data for ${symbol} (${companyName}) and provide a comprehensive analysis.
+
+${exchangeContext}
 
 ${quoteInfo}
 
@@ -476,14 +484,18 @@ Provide your analysis in the following JSON format exactly:
   },
   "sentiment": "<1-2 sentence market sentiment summary>",
   "companyProfile": {
-    "business": "<brief description of what the company does>",
+    "business": "<detailed 2-3 sentence description of what the company does, its main products/services, and which industry/sector it operates in>",
+    "sector": "<company sector, e.g., Financial Services, Technology, Healthcare, Consumer Products, Plantation, etc.>",
+    "industry": "<specific industry, e.g., Banking, Semiconductor, Oil & Gas, Telecommunications, etc.>",
+    "founded": "<year founded or 'N/A' if unknown>",
+    "headquarters": "<city and country of headquarters>",
     "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-    "risks": ["<risk 1>", "<risk 2>"]
+    "risks": ["<risk 1>", "<risk 2>", "<risk 3>"]
   },
   "recommendation": "<brief actionable recommendation for investors>"
 }
 
-Be accurate with your technical calculations. Base RSI, MACD, and moving averages on the actual price data provided. Return ONLY valid JSON, no markdown.`;
+IMPORTANT: The company profile must be about the EXACT company identified by the symbol and name above. Do NOT confuse with similarly named companies. Be accurate with your technical calculations. Base RSI, MACD, and moving averages on the actual price data provided. Return ONLY valid JSON, no markdown.`;
 
       let content = "";
       const aiConfig = getAIProvider();
@@ -537,6 +549,10 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
           sentiment: "Analysis unavailable.",
           companyProfile: {
             business: "Information unavailable.",
+            sector: "N/A",
+            industry: "N/A",
+            founded: "N/A",
+            headquarters: "N/A",
             strengths: [],
             risks: [],
           },

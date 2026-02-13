@@ -67,6 +67,10 @@ interface AnalysisResponse {
   sentiment: string;
   companyProfile: {
     business: string;
+    sector: string;
+    industry: string;
+    founded: string;
+    headquarters: string;
     strengths: string[];
     risks: string[];
   };

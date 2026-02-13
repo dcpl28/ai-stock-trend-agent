@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
+import { Building2, TrendingUp, AlertCircle, Loader2, MapPin, Calendar, Briefcase, Factory } from "lucide-react";
 
 interface QuoteData {
   symbol: string;
@@ -25,6 +25,10 @@ interface QuoteData {
 interface AnalysisData {
   companyProfile?: {
     business: string;
+    sector?: string;
+    industry?: string;
+    founded?: string;
+    headquarters?: string;
     strengths: string[];
     risks: string[];
   };
@@ -54,6 +58,8 @@ export function CompanyInsights({
     return num.toFixed(2);
   };
 
+  const profile = analysis?.companyProfile;
+
   return (
     <div className="space-y-6">
       {isLoading ? (
@@ -65,7 +71,7 @@ export function CompanyInsights({
             </span>
           </CardContent>
         </Card>
-      ) : analysis?.companyProfile ? (
+      ) : profile ? (
         <Card className="glass-panel border-white/5">
           <CardHeader className="pb-3 border-b border-white/5">
             <CardTitle className="flex items-center gap-2 text-[10px] text-primary uppercase tracking-widest font-medium">
@@ -82,9 +88,46 @@ export function CompanyInsights({
                 className="text-sm text-foreground/90 leading-relaxed font-light"
                 data-testid="text-company-business"
               >
-                {analysis.companyProfile.business}
+                {profile.business}
               </p>
             </div>
+
+            {(profile.sector || profile.industry || profile.founded || profile.headquarters) && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-3 border-y border-white/5">
+                {profile.sector && (
+                  <div className="space-y-1" data-testid="text-company-sector">
+                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <Briefcase className="w-3 h-3" /> Sector
+                    </div>
+                    <p className="text-xs text-foreground/80 font-light">{profile.sector}</p>
+                  </div>
+                )}
+                {profile.industry && (
+                  <div className="space-y-1" data-testid="text-company-industry">
+                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <Factory className="w-3 h-3" /> Industry
+                    </div>
+                    <p className="text-xs text-foreground/80 font-light">{profile.industry}</p>
+                  </div>
+                )}
+                {profile.founded && profile.founded !== "N/A" && (
+                  <div className="space-y-1" data-testid="text-company-founded">
+                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <Calendar className="w-3 h-3" /> Founded
+                    </div>
+                    <p className="text-xs text-foreground/80 font-light">{profile.founded}</p>
+                  </div>
+                )}
+                {profile.headquarters && (
+                  <div className="space-y-1" data-testid="text-company-hq">
+                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <MapPin className="w-3 h-3" /> Headquarters
+                    </div>
+                    <p className="text-xs text-foreground/80 font-light">{profile.headquarters}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -92,7 +135,7 @@ export function CompanyInsights({
                   <TrendingUp className="w-3 h-3" /> Strengths
                 </h4>
                 <ul className="space-y-1">
-                  {analysis.companyProfile.strengths.map((item, i) => (
+                  {profile.strengths.map((item, i) => (
                     <li
                       key={i}
                       className="text-xs text-foreground/80 flex items-start gap-2"
@@ -110,7 +153,7 @@ export function CompanyInsights({
                   <AlertCircle className="w-3 h-3" /> Risks
                 </h4>
                 <ul className="space-y-1">
-                  {analysis.companyProfile.risks.map((item, i) => (
+                  {profile.risks.map((item, i) => (
                     <li
                       key={i}
                       className="text-xs text-foreground/80 flex items-start gap-2"
