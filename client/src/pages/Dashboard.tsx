@@ -284,11 +284,7 @@ export default function Dashboard() {
                </div>
              ) : stockData?.candles && stockData.candles.length > 0 ? (
                <div className="glass-panel p-1 rounded-lg h-[500px]">
-                 {isKLSE ? (
-                    <StockChart data={stockData.candles} symbol={symbol} />
-                 ) : (
-                    <TradingViewChart symbol={symbol} />
-                 )}
+                 <TradingViewChart symbol={symbol} />
                </div>
              ) : (
                <div className="h-[500px] flex flex-col items-center justify-center bg-card/20 rounded-lg border border-primary/10 border-dashed text-muted-foreground font-light">
