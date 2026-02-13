@@ -533,11 +533,43 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
   const scanCache = new Map<string, { data: any[]; timestamp: number }>();
   const SCAN_CACHE_TTL = 5 * 60 * 1000;
 
+  function calcSMA(closes: number[], period: number): number | null {
+    if (closes.length < period) return null;
+    const slice = closes.slice(-period);
+    return slice.reduce((s, v) => s + v, 0) / period;
+  }
+
+  function calcEMA(closes: number[], period: number): number | null {
+    if (closes.length < period) return null;
+    const k = 2 / (period + 1);
+    let ema = closes.slice(0, period).reduce((s, v) => s + v, 0) / period;
+    for (let i = period; i < closes.length; i++) {
+      ema = closes[i] * k + ema * (1 - k);
+    }
+    return ema;
+  }
+
+  function calcEMASeries(closes: number[], period: number): number[] {
+    if (closes.length < period) return [];
+    const k = 2 / (period + 1);
+    let ema = closes.slice(0, period).reduce((s, v) => s + v, 0) / period;
+    const series: number[] = [];
+    for (let i = 0; i < period; i++) series.push(0);
+    series[period - 1] = ema;
+    for (let i = period; i < closes.length; i++) {
+      ema = closes[i] * k + ema * (1 - k);
+      series.push(ema);
+    }
+    return series;
+  }
+
   app.get("/api/scanner", requireAuth, async (req, res) => {
     try {
       const market = (req.query.market as string) || "US";
       const type = (req.query.type as string) || "ath";
-      const cacheKey = `${market}_${type}`;
+      const criteriaParam = (req.query.criteria as string) || "";
+      const criteria = criteriaParam ? criteriaParam.split(",") : [];
+      const cacheKey = `${market}_${type}_${criteriaParam}`;
 
       const cached = scanCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < SCAN_CACHE_TTL) {
@@ -547,84 +579,185 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
       const symbols = market === "MY" ? MY_STOCKS : US_STOCKS;
       const results: any[] = [];
       const batchSize = 10;
+      const needsChart = type === "breakout" || criteria.some(c =>
+        ["above_ema5", "above_ema20", "above_sma200", "ema20_cross_sma200"].includes(c)
+      );
+      const chartDays = criteria.includes("above_sma200") || criteria.includes("ema20_cross_sma200") ? 400 : 45;
 
       for (let i = 0; i < symbols.length; i += batchSize) {
         const batch = symbols.slice(i, i + batchSize);
         const promises = batch.map(async (sym) => {
           try {
-            if (type === "ath") {
-              const quote: any = await yahooFinance.quote(sym);
-              if (!quote || !quote.regularMarketPrice || !quote.fiftyTwoWeekHigh) return null;
-
-              const price = quote.regularMarketPrice;
-              const high52 = quote.fiftyTwoWeekHigh;
-              const pctFromHigh = ((high52 - price) / high52) * 100;
-
-              if (pctFromHigh <= 3) {
-                return {
-                  symbol: quote.symbol,
-                  name: quote.shortName || quote.longName || quote.symbol,
-                  price,
-                  change: quote.regularMarketChange || 0,
-                  changePercent: quote.regularMarketChangePercent || 0,
-                  volume: quote.regularMarketVolume || 0,
-                  marketCap: quote.marketCap || 0,
-                  fiftyTwoWeekHigh: high52,
-                  currency: quote.currency || (market === "MY" ? "MYR" : "USD"),
-                  reason: pctFromHigh < 0.5
-                    ? `New 52-week high at ${price.toFixed(2)}`
-                    : `${pctFromHigh.toFixed(1)}% from 52-week high (${high52.toFixed(2)})`,
-                };
-              }
-            } else {
-              const [quote, chart]: any[] = await Promise.all([
-                yahooFinance.quote(sym),
-                yahooFinance.chart(sym, {
-                  period1: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+            const quotePromise = yahooFinance.quote(sym);
+            const chartPromise = needsChart
+              ? yahooFinance.chart(sym, {
+                  period1: new Date(Date.now() - chartDays * 24 * 60 * 60 * 1000),
                   period2: new Date(),
                   interval: "1d" as any,
-                }, { validateResult: false }),
-              ]);
+                }, { validateResult: false })
+              : Promise.resolve(null);
 
-              if (!quote || !quote.regularMarketPrice) return null;
-              const candles = (chart?.quotes || []).filter((c: any) => c.high != null && c.volume != null);
-              if (candles.length < 25) return null;
+            const [quote, chart]: any[] = await Promise.all([quotePromise, chartPromise]);
+            if (!quote || !quote.regularMarketPrice) return null;
 
-              const lookbackDays = 5;
-              const recentCandles = candles.slice(-lookbackDays);
-              const priorCandles = candles.slice(-(20 + lookbackDays), -lookbackDays);
-              if (priorCandles.length < 15) return null;
+            const currentPrice = quote.regularMarketPrice;
+            const reasons: string[] = [];
+            let matched = false;
 
-              const high20 = Math.max(...priorCandles.map((c: any) => c.high));
-              const avgVol = priorCandles.reduce((s: number, c: any) => s + (c.volume || 0), 0) / priorCandles.length;
+            if (type === "ath") {
+              if (!quote.fiftyTwoWeekHigh) return null;
+              const pctFromHigh = ((quote.fiftyTwoWeekHigh - currentPrice) / quote.fiftyTwoWeekHigh) * 100;
+              if (pctFromHigh <= 3) {
+                matched = true;
+                reasons.push(
+                  pctFromHigh < 0.5
+                    ? `New 52-week high at ${currentPrice.toFixed(2)}`
+                    : `${pctFromHigh.toFixed(1)}% from 52-week high (${quote.fiftyTwoWeekHigh.toFixed(2)})`
+                );
+              } else {
+                return null;
+              }
+            }
 
-              let breakoutDay: any = null;
-              for (const candle of recentCandles) {
-                if (candle.high > high20 && candle.volume > avgVol * 0.8) {
-                  if (!breakoutDay || candle.high > breakoutDay.high) {
-                    breakoutDay = candle;
+            const candles = chart
+              ? (chart.quotes || []).filter((c: any) => c.close != null && c.high != null)
+              : [];
+            const closes = candles.map((c: any) => c.close);
+
+            if (type === "breakout") {
+              let breakoutMatched = false;
+
+              const hasBreakoutCriteria = criteria.some(c =>
+                ["above_5_candles", "above_10day", "above_3day"].includes(c)
+              );
+
+              if (!hasBreakoutCriteria) {
+                if (candles.length >= 25) {
+                  const lookback = 5;
+                  const recent = candles.slice(-lookback);
+                  const prior = candles.slice(-(20 + lookback), -lookback);
+                  if (prior.length >= 15) {
+                    const high20 = Math.max(...prior.map((c: any) => c.high));
+                    for (const candle of recent) {
+                      if (candle.high > high20) {
+                        breakoutMatched = true;
+                        const pct = ((candle.high - high20) / high20 * 100).toFixed(1);
+                        const dt = new Date(candle.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                        reasons.push(`Broke 20-day high (${high20.toFixed(2)}) by ${pct}% on ${dt}`);
+                        break;
+                      }
+                    }
                   }
                 }
               }
 
-              if (breakoutDay) {
-                const currentPrice = quote.regularMarketPrice;
-                const volRatio = (breakoutDay.volume / avgVol).toFixed(1);
-                const breakoutPct = ((breakoutDay.high - high20) / high20 * 100).toFixed(1);
-                const breakoutDate = new Date(breakoutDay.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                return {
-                  symbol: quote.symbol,
-                  name: quote.shortName || quote.longName || quote.symbol,
-                  price: currentPrice,
-                  change: quote.regularMarketChange || 0,
-                  changePercent: quote.regularMarketChangePercent || 0,
-                  volume: breakoutDay.volume,
-                  marketCap: quote.marketCap || 0,
-                  fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || 0,
-                  currency: quote.currency || (market === "MY" ? "MYR" : "USD"),
-                  reason: `Broke 20-day high (${high20.toFixed(2)}) by ${breakoutPct}% on ${breakoutDate} with ${volRatio}x avg vol`,
-                };
+              if (criteria.includes("above_5_candles") && candles.length >= 6) {
+                const last5Highs = candles.slice(-6, -1).map((c: any) => c.high);
+                const maxHigh5 = Math.max(...last5Highs);
+                if (currentPrice > maxHigh5) {
+                  breakoutMatched = true;
+                  reasons.push(`Above last 5 candle highs (${maxHigh5.toFixed(2)})`);
+                }
               }
+
+              if (criteria.includes("above_10day") && candles.length >= 11) {
+                const last10Highs = candles.slice(-11, -1).map((c: any) => c.high);
+                const maxHigh10 = Math.max(...last10Highs);
+                if (currentPrice > maxHigh10) {
+                  breakoutMatched = true;
+                  reasons.push(`Above 10-day high (${maxHigh10.toFixed(2)})`);
+                }
+              }
+
+              if (criteria.includes("above_3day") && candles.length >= 4) {
+                const last3Highs = candles.slice(-4, -1).map((c: any) => c.high);
+                const maxHigh3 = Math.max(...last3Highs);
+                if (currentPrice > maxHigh3) {
+                  breakoutMatched = true;
+                  reasons.push(`Above 3-day high (${maxHigh3.toFixed(2)})`);
+                }
+              }
+
+              if (!breakoutMatched) return null;
+              matched = true;
+            }
+
+            if (criteria.includes("above_ema5")) {
+              const ema5 = calcEMA(closes, 5);
+              if (ema5 === null) return null;
+              if (currentPrice > ema5) {
+                reasons.push(`Above EMA5 (${ema5.toFixed(2)})`);
+              } else {
+                return null;
+              }
+            }
+
+            if (criteria.includes("above_ema20")) {
+              const ema20 = calcEMA(closes, 20);
+              if (ema20 === null) return null;
+              if (currentPrice > ema20) {
+                reasons.push(`Above EMA20 (${ema20.toFixed(2)})`);
+              } else {
+                return null;
+              }
+            }
+
+            if (criteria.includes("above_sma200")) {
+              const sma200 = calcSMA(closes, 200);
+              if (sma200 === null) return null;
+              if (currentPrice > sma200) {
+                reasons.push(`Above SMA200 (${sma200.toFixed(2)})`);
+              } else {
+                return null;
+              }
+            }
+
+            if (criteria.includes("ema20_cross_sma200")) {
+              if (closes.length < 201) return null;
+              const ema20Series = calcEMASeries(closes, 20);
+              const sma200Now = calcSMA(closes, 200);
+              const sma200Prev = calcSMA(closes.slice(0, -1), 200);
+              const ema20Now = ema20Series[ema20Series.length - 1];
+              const ema20Prev = ema20Series[ema20Series.length - 2];
+              if (!sma200Now || !sma200Prev || !ema20Now || !ema20Prev) return null;
+
+              const crossedUp5d = (() => {
+                for (let d = 1; d <= 5 && d < ema20Series.length; d++) {
+                  const idx = ema20Series.length - 1 - d;
+                  const prevIdx = idx - 1;
+                  if (prevIdx < 0 || idx < 200) continue;
+                  const smaAtIdx = calcSMA(closes.slice(0, idx + 1), 200);
+                  const smaAtPrev = calcSMA(closes.slice(0, idx), 200);
+                  if (!smaAtIdx || !smaAtPrev) continue;
+                  if (ema20Series[prevIdx] <= smaAtPrev && ema20Series[idx] > smaAtIdx) return true;
+                }
+                return false;
+              })();
+
+              if (ema20Now > sma200Now || crossedUp5d) {
+                if (crossedUp5d) {
+                  reasons.push(`EMA20 crossed above SMA200 (recent golden cross)`);
+                } else {
+                  reasons.push(`EMA20 (${ema20Now.toFixed(2)}) above SMA200 (${sma200Now.toFixed(2)})`);
+                }
+              } else {
+                return null;
+              }
+            }
+
+            if (type === "ath" && reasons.length > 0 || type === "breakout" && matched) {
+              return {
+                symbol: quote.symbol,
+                name: quote.shortName || quote.longName || quote.symbol,
+                price: currentPrice,
+                change: quote.regularMarketChange || 0,
+                changePercent: quote.regularMarketChangePercent || 0,
+                volume: quote.regularMarketVolume || 0,
+                marketCap: quote.marketCap || 0,
+                fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || 0,
+                currency: quote.currency || (market === "MY" ? "MYR" : "USD"),
+                reason: reasons.join(" · "),
+              };
             }
             return null;
           } catch {
