@@ -162,7 +162,7 @@ export default function Dashboard() {
     }
   };
 
-  const isKLSE = symbol.includes("KLSE") || symbol.includes(".KL") || symbol.includes("MYX");
+  const isKLSE = symbol.includes("KLSE") || symbol.includes(".KL") || symbol.includes("MYX") || stockData?.exchange === "KLS" || stockData?.currency === "MYR";
   const currency = stockData?.currency || (isKLSE ? "MYR" : "USD");
   const currentPrice = quoteData?.price || stockData?.regularMarketPrice || 0;
   const priceChange = quoteData?.change || 0;
