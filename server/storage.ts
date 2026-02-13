@@ -1,4 +1,4 @@
-import { type User, type InsertUser, users, analysisLogs, type AnalysisLog } from "@shared/schema";
+import { type User, type InsertUser, users, analysisLogs, type AnalysisLog, appSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, gte } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -19,6 +19,8 @@ export interface IStorage {
   logAnalysisRequest(email: string, symbol: string, ip: string | null): Promise<void>;
   getAnalysisLogs(limit?: number): Promise<AnalysisLog[]>;
   getUserRequestCountLastHour(email: string): Promise<number>;
+  getSetting(key: string): Promise<string | null>;
+  setSetting(key: string, value: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -93,6 +95,15 @@ export class DatabaseStorage implements IStorage {
       .from(analysisLogs)
       .where(sql`${analysisLogs.userEmail} = ${email} AND ${analysisLogs.createdAt} >= ${oneHourAgo}`);
     return result[0]?.count || 0;
+  }
+  async getSetting(key: string): Promise<string | null> {
+    const [row] = await db.select().from(appSettings).where(eq(appSettings.key, key));
+    return row?.value || null;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    await db.insert(appSettings).values({ key, value })
+      .onConflictDoUpdate({ target: appSettings.key, set: { value } });
   }
 }
 

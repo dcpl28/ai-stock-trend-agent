@@ -36,6 +36,9 @@ export default function AdminConfig() {
   const [error, setError] = useState("");
   const [analysisLogs, setAnalysisLogs] = useState<AnalysisLogEntry[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [rateLimit, setRateLimit] = useState(20);
+  const [rateLimitInput, setRateLimitInput] = useState("20");
+  const [savingRate, setSavingRate] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -44,6 +47,7 @@ export default function AdminConfig() {
     }
     fetchUsers();
     fetchAnalysisLogs();
+    fetchSettings();
   }, [isAdmin]);
 
   const fetchUsers = async () => {
@@ -65,6 +69,35 @@ export default function AdminConfig() {
       }
     } catch {} finally {
       setLogsLoading(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch("/api/admin/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setRateLimit(data.rateLimitPerHour);
+        setRateLimitInput(String(data.rateLimitPerHour));
+      }
+    } catch {}
+  };
+
+  const saveRateLimit = async () => {
+    const val = parseInt(rateLimitInput);
+    if (isNaN(val) || val < 1 || val > 1000) return;
+    setSavingRate(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rateLimitPerHour: val }),
+      });
+      if (res.ok) {
+        setRateLimit(val);
+      }
+    } catch {} finally {
+      setSavingRate(false);
     }
   };
 
@@ -346,6 +379,38 @@ export default function AdminConfig() {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
+          <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Shield className="w-3.5 h-3.5 text-primary" />
+            Rate Limit Settings
+          </h2>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-muted-foreground whitespace-nowrap">
+              Max AI requests per user per hour:
+            </label>
+            <Input
+              type="number"
+              min={1}
+              max={1000}
+              value={rateLimitInput}
+              onChange={(e) => setRateLimitInput(e.target.value)}
+              className="w-24 h-9 bg-background/30 border-white/[0.06] focus-visible:border-primary/50 text-foreground text-center"
+              data-testid="input-rate-limit"
+            />
+            <Button
+              onClick={saveRateLimit}
+              disabled={savingRate || parseInt(rateLimitInput) === rateLimit}
+              className="h-9 px-4 bg-primary text-primary-foreground text-xs font-medium tracking-widest hover:bg-primary/90 cursor-pointer"
+              data-testid="button-save-rate-limit"
+            >
+              {savingRate ? <Loader2 className="w-3 h-3 animate-spin" /> : "SAVE"}
+            </Button>
+            <span className="text-[10px] text-muted-foreground/50">
+              Current: {rateLimit}/hr
+            </span>
+          </div>
         </div>
 
         <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">

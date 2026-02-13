@@ -31,6 +31,13 @@ export const analysisLogs = pgTable("analysis_logs", {
 
 export type AnalysisLog = typeof analysisLogs.$inferSelect;
 
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
+export type AppSetting = typeof appSettings.$inferSelect;
+
 export const conversations = pgTable("conversations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   title: text("title").notNull(),

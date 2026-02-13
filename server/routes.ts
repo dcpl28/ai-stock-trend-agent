@@ -432,7 +432,28 @@ export async function registerRoutes(
     res.json(results);
   });
 
-  const MAX_REQUESTS_PER_HOUR = 20;
+  app.get("/api/admin/settings", requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      const rateLimit = await storage.getSetting("rate_limit_per_hour") || "20";
+      res.json({ rateLimitPerHour: parseInt(rateLimit) });
+    } catch {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.put("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { rateLimitPerHour } = req.body;
+      if (typeof rateLimitPerHour !== "number" || rateLimitPerHour < 1 || rateLimitPerHour > 1000) {
+        return res.status(400).json({ error: "Rate limit must be between 1 and 1000" });
+      }
+      await storage.setSetting("rate_limit_per_hour", String(rateLimitPerHour));
+      console.log(`[SETTINGS] Admin updated rate limit to ${rateLimitPerHour}/hour`);
+      res.json({ ok: true, rateLimitPerHour });
+    } catch {
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
 
   app.post("/api/analysis", requireAuth, async (req, res) => {
     try {
@@ -446,12 +467,14 @@ export async function registerRoutes(
       const userIp = req.headers["x-forwarded-for"] as string || req.socket.remoteAddress || null;
 
       if (userEmail !== "admin") {
+        const rateLimitStr = await storage.getSetting("rate_limit_per_hour") || "20";
+        const maxRequestsPerHour = parseInt(rateLimitStr);
         const recentCount = await storage.getUserRequestCountLastHour(userEmail);
-        if (recentCount >= MAX_REQUESTS_PER_HOUR) {
-          console.log(`[RATE LIMIT] ${userEmail} blocked - ${recentCount} requests in last hour for symbol: ${symbol}`);
+        if (recentCount >= maxRequestsPerHour) {
+          console.log(`[RATE LIMIT] ${userEmail} blocked - ${recentCount}/${maxRequestsPerHour} requests in last hour for symbol: ${symbol}`);
           return res.status(429).json({
             error: "Rate limit exceeded",
-            message: `You have reached the maximum of ${MAX_REQUESTS_PER_HOUR} AI analysis requests per hour. Please try again later.`,
+            message: `You have reached the maximum of ${maxRequestsPerHour} AI analysis requests per hour. Please try again later.`,
             remaining: 0,
           });
         }
