@@ -54,17 +54,17 @@ export const generateMockData = (symbol: string, days: number = 30): CandleData[
   return data;
 };
 
-// Custom Shape for Recharts to render Candlesticks
 export const CandlestickShape = (props: any) => {
   const { x, width, payload, yAxis } = props;
   
-  // Safety check
   if (!payload || !yAxis) return null;
 
   const { open, close, high, low } = payload;
   
-  const isBullish = close > open;
-  const color = isBullish ? 'hsl(var(--chart-bullish))' : 'hsl(var(--chart-bearish))'; // Green/Red
+  const isBullish = close >= open;
+  const bullColor = '#22c55e';
+  const bearColor = '#ef4444';
+  const color = isBullish ? bullColor : bearColor;
   
   const pixelHigh = yAxis.scale(high);
   const pixelLow = yAxis.scale(low);
@@ -74,29 +74,30 @@ export const CandlestickShape = (props: any) => {
   const bodyTop = Math.min(pixelOpen, pixelClose);
   const bodyBottom = Math.max(pixelOpen, pixelClose);
   
-  // Ensure minimal height for visibility if open == close
   const bodyHeight = Math.max(2, bodyBottom - bodyTop); 
   
+  const bodyWidth = Math.max(4, width * 0.8);
+  const bodyX = x + (width - bodyWidth) / 2;
   const center = x + width / 2;
 
   return (
     <g>
-      {/* Wick */}
       <line 
         x1={center} 
         y1={pixelHigh} 
         x2={center} 
         y2={pixelLow} 
         stroke={color} 
-        strokeWidth={1.5} 
+        strokeWidth={1} 
       />
-      {/* Body */}
       <rect 
-        x={x} 
+        x={bodyX} 
         y={bodyTop} 
-        width={width} 
+        width={bodyWidth} 
         height={bodyHeight} 
-        fill={color} 
+        fill={isBullish ? color : color} 
+        stroke={color}
+        strokeWidth={0.5}
       />
     </g>
   );

@@ -117,8 +117,8 @@ export function StockChart({ data, symbol }: StockChartProps) {
                 data.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={entry.close > entry.open ? 'hsl(var(--chart-bullish))' : 'hsl(var(--chart-bearish))'} 
-                    stroke={entry.close > entry.open ? 'hsl(var(--chart-bullish))' : 'hsl(var(--chart-bearish))'}
+                    fill={entry.close >= entry.open ? '#22c55e' : '#ef4444'} 
+                    stroke={entry.close >= entry.open ? '#22c55e' : '#ef4444'}
                   />
                 ))
               }

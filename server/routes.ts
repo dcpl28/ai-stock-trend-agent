@@ -4,8 +4,29 @@ import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import YahooFinance from "yahoo-finance2";
 import { storage } from "./storage";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 const yahooFinance = new YahooFinance();
+
+const KLSE_NAME_TO_CODE: Record<string, string> = (() => {
+  try {
+    const raw = readFileSync(join(__dirname, "..", "server", "klse-stocks.json"), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    try {
+      const raw = readFileSync(join(process.cwd(), "server", "klse-stocks.json"), "utf8");
+      return JSON.parse(raw);
+    } catch {
+      console.warn("Could not load klse-stocks.json");
+      return {};
+    }
+  }
+})();
+const KLSE_CODE_TO_NAME: Record<string, string> = {};
+for (const [name, code] of Object.entries(KLSE_NAME_TO_CODE)) {
+  KLSE_CODE_TO_NAME[code as string] = name;
+}
 
 const replitOpenai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -46,11 +67,14 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 async function resolveYahooSymbol(symbol: string): Promise<string> {
   if (symbol.startsWith("KLSE:") || symbol.startsWith("MYX:")) {
-    const ticker = symbol.replace("KLSE:", "").replace("MYX:", "");
+    const ticker = symbol.replace("KLSE:", "").replace("MYX:", "").toUpperCase();
 
     if (/^\d+$/.test(ticker)) {
       return `${ticker}.KL`;
     }
+
+    const localCode = KLSE_NAME_TO_CODE[ticker];
+    if (localCode) return localCode;
 
     const directSymbol = `${ticker}.KL`;
     try {
@@ -58,7 +82,7 @@ async function resolveYahooSymbol(symbol: string): Promise<string> {
       if (q && q.symbol && q.currency && q.regularMarketPrice < 1e6) return directSymbol;
     } catch {}
 
-    const searchQueries = [ticker, `${ticker} Group`, `${ticker} Berhad`, `${ticker} Bursa`, `${ticker} Malaysia`];
+    const searchQueries = [ticker, `${ticker} Berhad`, `${ticker} Malaysia`];
     for (const query of searchQueries) {
       try {
         const searchResult: any = await yahooFinance.search(query);
@@ -380,6 +404,19 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/klse-search", (req, res) => {
+    const q = ((req.query.q as string) || "").toUpperCase().trim();
+    if (!q || q.length < 1) return res.json([]);
+    const results: { symbol: string; code: string; name: string }[] = [];
+    for (const [name, code] of Object.entries(KLSE_NAME_TO_CODE)) {
+      if (name.includes(q) || (code as string).replace(".KL", "").includes(q)) {
+        results.push({ symbol: `KLSE:${name}`, code: (code as string).replace(".KL", ""), name });
+      }
+      if (results.length >= 20) break;
+    }
+    res.json(results);
+  });
+
   app.post("/api/analysis", requireAuth, async (req, res) => {
     try {
       const { symbol, candles, quote } = req.body;
@@ -523,11 +560,21 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
   ];
 
   const MY_STOCKS = [
-    "1155.KL","1295.KL","5347.KL","1082.KL","4715.KL","6888.KL","3182.KL","5183.KL","5225.KL","4863.KL",
-    "5296.KL","1023.KL","6012.KL","4677.KL","5681.KL","3816.KL","5235.KL","4197.KL","6947.KL","5168.KL",
-    "7277.KL","4707.KL","1961.KL","5819.KL","2445.KL","3034.KL","5285.KL","7084.KL","6742.KL","8567.KL",
-    "4065.KL","5398.KL","6033.KL","1015.KL","5209.KL","6399.KL","1066.KL","4688.KL","5014.KL","5075.KL",
-    "7153.KL","3859.KL","5218.KL","0166.KL","2828.KL","3786.KL","6556.KL","7113.KL","5148.KL","4809.KL"
+    "1155.KL","1295.KL","1023.KL","5347.KL","5225.KL","8869.KL","5819.KL","5285.KL","5211.KL","6947.KL",
+    "6033.KL","3816.KL","1066.KL","5326.KL","6012.KL","4863.KL","5183.KL","6742.KL","4707.KL","1082.KL",
+    "1961.KL","5398.KL","4677.KL","2445.KL","1015.KL","6888.KL","5246.KL","5681.KL","2089.KL","5249.KL",
+    "5296.KL","4197.KL","4065.KL","7084.KL","5227.KL","5878.KL","3794.KL","4715.KL","3182.KL","5031.KL",
+    "5288.KL","7277.KL","3336.KL","5176.KL","5337.KL","2429.KL","5263.KL","2488.KL","0097.KL","5273.KL",
+    "5212.KL","1899.KL","3034.KL","3255.KL","1818.KL","8206.KL","5185.KL","7293.KL","5238.KL","0128.KL",
+    "0138.KL","3867.KL","8621.KL","4731.KL","1171.KL","5209.KL","3301.KL","0166.KL","5258.KL","2836.KL",
+    "5306.KL","5053.KL","5309.KL","5200.KL","5606.KL","5005.KL","8664.KL","7113.KL","5292.KL","2291.KL",
+    "0208.KL","4006.KL","5106.KL","5264.KL","5323.KL","5340.KL","0151.KL","5038.KL","5126.KL","7161.KL",
+    "5148.KL","5151.KL","5401.KL","5168.KL","8583.KL","5139.KL","6139.KL","3069.KL","0318.KL","5236.KL",
+    "0338.KL","6633.KL","5286.KL","5099.KL","5243.KL","7153.KL","5032.KL","5318.KL","5000.KL","7172.KL",
+    "0225.KL","1619.KL","4456.KL","6599.KL","0048.KL","7237.KL","7204.KL","5113.KL","5141.KL","5284.KL",
+    "7248.KL","8273.KL","5135.KL","5301.KL","5213.KL","5280.KL","0233.KL","6459.KL","5088.KL","5248.KL",
+    "7233.KL","7095.KL","0162.KL","7160.KL","5199.KL","3689.KL","6399.KL","4162.KL","5085.KL","5219.KL",
+    "0388.KL","3026.KL","5024.KL","7231.KL","7100.KL","5271.KL","6262.KL","3611.KL","0375.KL","5078.KL"
   ];
 
   const scanCache = new Map<string, { data: any[]; timestamp: number }>();
