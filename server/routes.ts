@@ -597,8 +597,10 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
               const currentPrice = quote.regularMarketPrice;
               const currentVol = latest?.volume || quote.regularMarketVolume || 0;
 
-              if (currentPrice > high20 && currentVol > avgVol * 1.2) {
+              const volMultiplier = market === "MY" ? 0.8 : 1.2;
+              if (currentPrice > high20 && currentVol > avgVol * volMultiplier) {
                 const volRatio = (currentVol / avgVol).toFixed(1);
+                const breakoutPct = ((currentPrice - high20) / high20 * 100).toFixed(1);
                 return {
                   symbol: quote.symbol,
                   name: quote.shortName || quote.longName || quote.symbol,
@@ -609,7 +611,7 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
                   marketCap: quote.marketCap || 0,
                   fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || 0,
                   currency: quote.currency || (market === "MY" ? "MYR" : "USD"),
-                  reason: `Broke 20-day high (${high20.toFixed(2)}) with ${volRatio}x avg volume`,
+                  reason: `Broke 20-day high (${high20.toFixed(2)}) by ${breakoutPct}% with ${volRatio}x avg volume`,
                 };
               }
             }
