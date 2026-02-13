@@ -7,7 +7,7 @@ import { StockNews } from "@/components/StockNews";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -74,7 +74,9 @@ interface AnalysisResponse {
 }
 
 export default function Dashboard() {
-  const [symbol, setSymbol] = useState("KLSE:MAYBANK");
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialSymbol = urlParams.get("symbol") || "KLSE:MAYBANK";
+  const [symbol, setSymbol] = useState(initialSymbol);
   const [searchInput, setSearchInput] = useState("");
   const { email, isAdmin, remainingMs, logout, checkSession } = useAuth();
   const [, navigate] = useLocation();
@@ -183,6 +185,14 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/scanner")}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+              data-testid="button-scanner"
+            >
+              <Scan className="w-3.5 h-3.5" />
+              Scanner
+            </button>
             {isAdmin && (
               <button
                 onClick={() => navigate("/admin")}

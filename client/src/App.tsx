@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 import AdminConfig from "@/pages/AdminConfig";
+import Scanner from "@/pages/Scanner";
 import { Loader2 } from "lucide-react";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/scanner" component={Scanner} />
       <Route path="/admin" component={AdminConfig} />
       <Route component={NotFound} />
     </Switch>

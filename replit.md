@@ -14,7 +14,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight React router) — single-page app with a main Dashboard route
+- **Routing**: Wouter (lightweight React router) — routes: Dashboard (/), Scanner (/scanner), Admin (/admin)
 - **State Management**: TanStack React Query for server state; local React state for UI
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives with Tailwind CSS v4
 - **Charting**: Dual charting approach — Recharts for custom candlestick charts and TradingView embedded widget for full-featured interactive charts

@@ -509,5 +509,133 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
     }
   });
 
+  const US_STOCKS = [
+    "AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","BRK-B","JPM","V",
+    "UNH","MA","HD","PG","JNJ","ABBV","XOM","BAC","KO","MRK",
+    "PEP","AVGO","COST","LLY","TMO","CSCO","MCD","WMT","ABT","CRM",
+    "ACN","DHR","TXN","NKE","NEE","PM","UPS","ORCL","INTC","AMD",
+    "QCOM","LOW","AMAT","GS","CAT","BA","SBUX","GE","ISRG","BLK",
+    "MDT","ADP","AMGN","GILD","SYK","DE","ADI","LRCX","REGN","BKNG",
+    "PYPL","MDLZ","CB","VRTX","TMUS","CI","SO","ZTS","PANW","MMC",
+    "KLAC","PLD","CME","SNPS","CDNS","APH","MCO","FI","SHW","ITW",
+    "NFLX","DIS","NOW","ABNB","COIN","UBER","PLTR","SQ","SNOW","SHOP",
+    "MELI","CRWD","DDOG","NET","ZS","MDB","RIVN","LCID","SOFI","RBLX"
+  ];
+
+  const MY_STOCKS = [
+    "1155.KL","1295.KL","5347.KL","1082.KL","4715.KL","6888.KL","3182.KL","5183.KL","5225.KL","4863.KL",
+    "5296.KL","1023.KL","6012.KL","4677.KL","5681.KL","3816.KL","5235.KL","4197.KL","6947.KL","5168.KL",
+    "7277.KL","4707.KL","1961.KL","5819.KL","2445.KL","3034.KL","5285.KL","7084.KL","6742.KL","8567.KL",
+    "4065.KL","5398.KL","6033.KL","1015.KL","5209.KL","6399.KL","1066.KL","4688.KL","5014.KL","5075.KL",
+    "7153.KL","3859.KL","5218.KL","0166.KL","2828.KL","3786.KL","6556.KL","7113.KL","5148.KL","4809.KL"
+  ];
+
+  const scanCache = new Map<string, { data: any[]; timestamp: number }>();
+  const SCAN_CACHE_TTL = 5 * 60 * 1000;
+
+  app.get("/api/scanner", requireAuth, async (req, res) => {
+    try {
+      const market = (req.query.market as string) || "US";
+      const type = (req.query.type as string) || "ath";
+      const cacheKey = `${market}_${type}`;
+
+      const cached = scanCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < SCAN_CACHE_TTL) {
+        return res.json(cached.data);
+      }
+
+      const symbols = market === "MY" ? MY_STOCKS : US_STOCKS;
+      const results: any[] = [];
+      const batchSize = 10;
+
+      for (let i = 0; i < symbols.length; i += batchSize) {
+        const batch = symbols.slice(i, i + batchSize);
+        const promises = batch.map(async (sym) => {
+          try {
+            if (type === "ath") {
+              const quote: any = await yahooFinance.quote(sym);
+              if (!quote || !quote.regularMarketPrice || !quote.fiftyTwoWeekHigh) return null;
+
+              const price = quote.regularMarketPrice;
+              const high52 = quote.fiftyTwoWeekHigh;
+              const pctFromHigh = ((high52 - price) / high52) * 100;
+
+              if (pctFromHigh <= 3) {
+                return {
+                  symbol: quote.symbol,
+                  name: quote.shortName || quote.longName || quote.symbol,
+                  price,
+                  change: quote.regularMarketChange || 0,
+                  changePercent: quote.regularMarketChangePercent || 0,
+                  volume: quote.regularMarketVolume || 0,
+                  marketCap: quote.marketCap || 0,
+                  fiftyTwoWeekHigh: high52,
+                  currency: quote.currency || (market === "MY" ? "MYR" : "USD"),
+                  reason: pctFromHigh < 0.5
+                    ? `New 52-week high at ${price.toFixed(2)}`
+                    : `${pctFromHigh.toFixed(1)}% from 52-week high (${high52.toFixed(2)})`,
+                };
+              }
+            } else {
+              const [quote, chart]: any[] = await Promise.all([
+                yahooFinance.quote(sym),
+                yahooFinance.chart(sym, {
+                  period1: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+                  period2: new Date(),
+                  interval: "1d" as any,
+                }, { validateResult: false }),
+              ]);
+
+              if (!quote || !quote.regularMarketPrice) return null;
+              const candles = (chart?.quotes || []).filter((c: any) => c.high != null && c.volume != null);
+              if (candles.length < 20) return null;
+
+              const recent20 = candles.slice(-21, -1);
+              const latest = candles[candles.length - 1];
+              const high20 = Math.max(...recent20.map((c: any) => c.high));
+              const avgVol = recent20.reduce((s: number, c: any) => s + (c.volume || 0), 0) / recent20.length;
+              const currentPrice = quote.regularMarketPrice;
+              const currentVol = latest?.volume || quote.regularMarketVolume || 0;
+
+              if (currentPrice > high20 && currentVol > avgVol * 1.2) {
+                const volRatio = (currentVol / avgVol).toFixed(1);
+                return {
+                  symbol: quote.symbol,
+                  name: quote.shortName || quote.longName || quote.symbol,
+                  price: currentPrice,
+                  change: quote.regularMarketChange || 0,
+                  changePercent: quote.regularMarketChangePercent || 0,
+                  volume: currentVol,
+                  marketCap: quote.marketCap || 0,
+                  fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || 0,
+                  currency: quote.currency || (market === "MY" ? "MYR" : "USD"),
+                  reason: `Broke 20-day high (${high20.toFixed(2)}) with ${volRatio}x avg volume`,
+                };
+              }
+            }
+            return null;
+          } catch {
+            return null;
+          }
+        });
+
+        const batchResults = await Promise.all(promises);
+        results.push(...batchResults.filter(Boolean));
+
+        if (i + batchSize < symbols.length) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+
+      results.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+
+      scanCache.set(cacheKey, { data: results, timestamp: Date.now() });
+      res.json(results);
+    } catch (error: any) {
+      console.error("Scanner error:", error.message);
+      res.status(500).json({ error: "Scanner failed", details: error.message });
+    }
+  });
+
   return httpServer;
 }
