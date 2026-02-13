@@ -100,6 +100,11 @@ async function resolveYahooSymbol(symbol: string): Promise<string> {
     if (exchange === "NASDAQ" || exchange === "NYSE") return ticker;
     return ticker;
   }
+
+  const upperSymbol = symbol.toUpperCase();
+  const klseCode = KLSE_NAME_TO_CODE[upperSymbol];
+  if (klseCode) return klseCode;
+
   return symbol;
 }
 
