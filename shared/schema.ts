@@ -21,6 +21,16 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+export const analysisLogs = pgTable("analysis_logs", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userEmail: text("user_email").notNull(),
+  symbol: text("symbol").notNull(),
+  ip: text("ip"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type AnalysisLog = typeof analysisLogs.$inferSelect;
+
 export const conversations = pgTable("conversations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   title: text("title").notNull(),

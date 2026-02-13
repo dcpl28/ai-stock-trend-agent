@@ -151,6 +151,10 @@ export default function Dashboard() {
         window.dispatchEvent(new CustomEvent('auth:expired'));
         throw new Error('Session expired');
       }
+      if (res.status === 429) {
+        const data = await res.json();
+        throw new Error(data.message || 'Rate limit exceeded. Please try again later.');
+      }
       if (!res.ok) throw new Error('Failed to fetch analysis');
       return res.json();
     },

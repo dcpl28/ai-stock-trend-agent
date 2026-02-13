@@ -1,6 +1,6 @@
-import { type User, type InsertUser, users } from "@shared/schema";
+import { type User, type InsertUser, users, analysisLogs, type AnalysisLog } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc, gte } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 10;
@@ -16,6 +16,9 @@ export interface IStorage {
   updateLoginInfo(id: string, ip: string): Promise<void>;
   incrementRequestCount(id: string): Promise<void>;
   toggleUserDisabled(id: string, disabled: boolean): Promise<User | undefined>;
+  logAnalysisRequest(email: string, symbol: string, ip: string | null): Promise<void>;
+  getAnalysisLogs(limit?: number): Promise<AnalysisLog[]>;
+  getUserRequestCountLastHour(email: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -74,6 +77,22 @@ export class DatabaseStorage implements IStorage {
   async toggleUserDisabled(id: string, disabled: boolean): Promise<User | undefined> {
     const [user] = await db.update(users).set({ disabled }).where(eq(users.id, id)).returning();
     return user;
+  }
+
+  async logAnalysisRequest(email: string, symbol: string, ip: string | null): Promise<void> {
+    await db.insert(analysisLogs).values({ userEmail: email, symbol, ip });
+  }
+
+  async getAnalysisLogs(limit: number = 100): Promise<AnalysisLog[]> {
+    return db.select().from(analysisLogs).orderBy(desc(analysisLogs.createdAt)).limit(limit);
+  }
+
+  async getUserRequestCountLastHour(email: string): Promise<number> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(analysisLogs)
+      .where(sql`${analysisLogs.userEmail} = ${email} AND ${analysisLogs.createdAt} >= ${oneHourAgo}`);
+    return result[0]?.count || 0;
   }
 }
 

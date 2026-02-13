@@ -282,6 +282,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/analysis-logs", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const logs = await storage.getAnalysisLogs(limit);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch analysis logs" });
+    }
+  });
+
   app.get("/api/news/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
@@ -422,6 +432,8 @@ export async function registerRoutes(
     res.json(results);
   });
 
+  const MAX_REQUESTS_PER_HOUR = 20;
+
   app.post("/api/analysis", requireAuth, async (req, res) => {
     try {
       const { symbol, candles, quote } = req.body;
@@ -429,6 +441,24 @@ export async function registerRoutes(
       if (!symbol || !candles || candles.length === 0) {
         return res.status(400).json({ error: "Symbol and candle data are required" });
       }
+
+      const userEmail = req.session.email || "admin";
+      const userIp = req.headers["x-forwarded-for"] as string || req.socket.remoteAddress || null;
+
+      if (userEmail !== "admin") {
+        const recentCount = await storage.getUserRequestCountLastHour(userEmail);
+        if (recentCount >= MAX_REQUESTS_PER_HOUR) {
+          console.log(`[RATE LIMIT] ${userEmail} blocked - ${recentCount} requests in last hour for symbol: ${symbol}`);
+          return res.status(429).json({
+            error: "Rate limit exceeded",
+            message: `You have reached the maximum of ${MAX_REQUESTS_PER_HOUR} AI analysis requests per hour. Please try again later.`,
+            remaining: 0,
+          });
+        }
+      }
+
+      await storage.logAnalysisRequest(userEmail, symbol, userIp);
+      console.log(`[ANALYSIS] ${userEmail} requested analysis for ${symbol} from IP ${userIp}`);
 
       if (req.session.userId && req.session.userId !== "admin") {
         await storage.incrementRequestCount(req.session.userId);

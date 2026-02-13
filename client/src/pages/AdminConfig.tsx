@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity } from "lucide-react";
+import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface UserEntry {
@@ -12,6 +12,14 @@ interface UserEntry {
   lastIp: string | null;
   lastLoginAt: string | null;
   requestCount: number;
+}
+
+interface AnalysisLogEntry {
+  id: number;
+  userEmail: string;
+  symbol: string;
+  ip: string | null;
+  createdAt: string;
 }
 
 export default function AdminConfig() {
@@ -26,6 +34,8 @@ export default function AdminConfig() {
   const [editEmail, setEditEmail] = useState("");
   const [editPassword, setEditPassword] = useState("");
   const [error, setError] = useState("");
+  const [analysisLogs, setAnalysisLogs] = useState<AnalysisLogEntry[]>([]);
+  const [logsLoading, setLogsLoading] = useState(true);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -33,6 +43,7 @@ export default function AdminConfig() {
       return;
     }
     fetchUsers();
+    fetchAnalysisLogs();
   }, [isAdmin]);
 
   const fetchUsers = async () => {
@@ -43,6 +54,17 @@ export default function AdminConfig() {
       }
     } catch {} finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAnalysisLogs = async () => {
+    try {
+      const res = await fetch("/api/admin/analysis-logs?limit=200");
+      if (res.ok) {
+        setAnalysisLogs(await res.json());
+      }
+    } catch {} finally {
+      setLogsLoading(false);
     }
   };
 
@@ -320,6 +342,61 @@ export default function AdminConfig() {
                       )}
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5 text-primary" />
+              AI Analysis Request Log ({analysisLogs.length})
+            </h2>
+            <button
+              onClick={() => { setLogsLoading(true); fetchAnalysisLogs(); }}
+              className="text-[10px] text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest cursor-pointer"
+              data-testid="button-refresh-logs"
+            >
+              Refresh
+            </button>
+          </div>
+          {logsLoading ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Loading logs...
+            </div>
+          ) : analysisLogs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground font-light" data-testid="text-no-logs">
+              No analysis requests yet.
+            </div>
+          ) : (
+            <div className="space-y-1 max-h-[500px] overflow-y-auto">
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 text-[9px] uppercase tracking-widest text-muted-foreground/50 pb-2 border-b border-white/5 sticky top-0 bg-card/95 backdrop-blur-sm px-1">
+                <span>User</span>
+                <span>Stock</span>
+                <span>IP</span>
+                <span>Time</span>
+              </div>
+              {analysisLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-2 px-1 border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                  data-testid={`row-log-${log.id}`}
+                >
+                  <span className="text-xs text-foreground/80 truncate" data-testid={`text-log-email-${log.id}`}>
+                    {log.userEmail}
+                  </span>
+                  <span className="text-xs text-primary font-mono" data-testid={`text-log-symbol-${log.id}`}>
+                    {log.symbol}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/50 font-mono" data-testid={`text-log-ip-${log.id}`}>
+                    {log.ip ? log.ip.split(',')[0].trim() : "—"}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/50 whitespace-nowrap" data-testid={`text-log-time-${log.id}`}>
+                    {formatDate(log.createdAt)}
+                  </span>
                 </div>
               ))}
             </div>
