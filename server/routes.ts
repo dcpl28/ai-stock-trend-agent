@@ -588,30 +588,41 @@ Be accurate with your technical calculations. Base RSI, MACD, and moving average
 
               if (!quote || !quote.regularMarketPrice) return null;
               const candles = (chart?.quotes || []).filter((c: any) => c.high != null && c.volume != null);
-              if (candles.length < 20) return null;
+              if (candles.length < 25) return null;
 
-              const recent20 = candles.slice(-21, -1);
-              const latest = candles[candles.length - 1];
-              const high20 = Math.max(...recent20.map((c: any) => c.high));
-              const avgVol = recent20.reduce((s: number, c: any) => s + (c.volume || 0), 0) / recent20.length;
-              const currentPrice = quote.regularMarketPrice;
-              const currentVol = latest?.volume || quote.regularMarketVolume || 0;
+              const lookbackDays = 5;
+              const recentCandles = candles.slice(-lookbackDays);
+              const priorCandles = candles.slice(-(20 + lookbackDays), -lookbackDays);
+              if (priorCandles.length < 15) return null;
 
-              const volMultiplier = market === "MY" ? 0.8 : 1.2;
-              if (currentPrice > high20 && currentVol > avgVol * volMultiplier) {
-                const volRatio = (currentVol / avgVol).toFixed(1);
-                const breakoutPct = ((currentPrice - high20) / high20 * 100).toFixed(1);
+              const high20 = Math.max(...priorCandles.map((c: any) => c.high));
+              const avgVol = priorCandles.reduce((s: number, c: any) => s + (c.volume || 0), 0) / priorCandles.length;
+
+              let breakoutDay: any = null;
+              for (const candle of recentCandles) {
+                if (candle.high > high20 && candle.volume > avgVol * 0.8) {
+                  if (!breakoutDay || candle.high > breakoutDay.high) {
+                    breakoutDay = candle;
+                  }
+                }
+              }
+
+              if (breakoutDay) {
+                const currentPrice = quote.regularMarketPrice;
+                const volRatio = (breakoutDay.volume / avgVol).toFixed(1);
+                const breakoutPct = ((breakoutDay.high - high20) / high20 * 100).toFixed(1);
+                const breakoutDate = new Date(breakoutDay.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
                 return {
                   symbol: quote.symbol,
                   name: quote.shortName || quote.longName || quote.symbol,
                   price: currentPrice,
                   change: quote.regularMarketChange || 0,
                   changePercent: quote.regularMarketChangePercent || 0,
-                  volume: currentVol,
+                  volume: breakoutDay.volume,
                   marketCap: quote.marketCap || 0,
                   fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || 0,
                   currency: quote.currency || (market === "MY" ? "MYR" : "USD"),
-                  reason: `Broke 20-day high (${high20.toFixed(2)}) by ${breakoutPct}% with ${volRatio}x avg volume`,
+                  reason: `Broke 20-day high (${high20.toFixed(2)}) by ${breakoutPct}% on ${breakoutDate} with ${volRatio}x avg vol`,
                 };
               }
             }
