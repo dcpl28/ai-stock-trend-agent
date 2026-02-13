@@ -35,14 +35,21 @@ export function StockChart({ data, symbol }: StockChartProps) {
   }), [dimensions]);
 
   const dataWithMA = useMemo(() => {
+    const k = 2 / (20 + 1);
+    let ema20: number | null = null;
     return data.map((item, index, array) => {
-      const ma20 = index >= 19
-        ? array.slice(index - 19, index + 1).reduce((sum, d) => sum + d.close, 0) / 20
-        : null;
-      const ma200 = index >= 199
+      if (index < 19) {
+        ema20 = null;
+      } else if (index === 19) {
+        ema20 = array.slice(0, 20).reduce((sum, d) => sum + d.close, 0) / 20;
+      } else {
+        ema20 = item.close * k + (ema20 as number) * (1 - k);
+      }
+
+      const sma200 = index >= 199
         ? array.slice(index - 199, index + 1).reduce((sum, d) => sum + d.close, 0) / 200
         : null;
-      return { ...item, ma20, ma200 };
+      return { ...item, ema20, sma200 };
     });
   }, [data]);
 
@@ -193,25 +200,25 @@ export function StockChart({ data, symbol }: StockChartProps) {
               );
             })}
 
-            {dataWithMA.some(d => d.ma20 !== null) && (
+            {dataWithMA.some(d => d.ema20 !== null) && (
               <polyline
                 fill="none"
                 stroke="#3b82f6"
                 strokeWidth={1.5}
                 points={dataWithMA
-                  .map((d, i) => d.ma20 !== null ? `${scaleX(i)},${scaleY(d.ma20)}` : null)
+                  .map((d, i) => d.ema20 !== null ? `${scaleX(i)},${scaleY(d.ema20)}` : null)
                   .filter(Boolean)
                   .join(' ')}
               />
             )}
 
-            {dataWithMA.some(d => d.ma200 !== null) && (
+            {dataWithMA.some(d => d.sma200 !== null) && (
               <polyline
                 fill="none"
                 stroke="#f59e0b"
                 strokeWidth={1.5}
                 points={dataWithMA
-                  .map((d, i) => d.ma200 !== null ? `${scaleX(i)},${scaleY(d.ma200)}` : null)
+                  .map((d, i) => d.sma200 !== null ? `${scaleX(i)},${scaleY(d.sma200)}` : null)
                   .filter(Boolean)
                   .join(' ')}
               />
@@ -254,10 +261,16 @@ export function StockChart({ data, symbol }: StockChartProps) {
               <span className={`text-right ${hoverData.close >= hoverData.open ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
                 {hoverData.close.toFixed(decimals)}
               </span>
-              {hoverData.ma20 && (
+              {hoverData.ema20 && (
                 <>
-                  <span className="text-muted-foreground text-xs mt-2 border-t border-white/5 pt-2">MA(20)</span>
-                  <span className="text-right text-[#3b82f6] text-xs mt-2 border-t border-white/5 pt-2">{hoverData.ma20.toFixed(decimals)}</span>
+                  <span className="text-muted-foreground text-xs mt-2 border-t border-white/5 pt-2">EMA(20)</span>
+                  <span className="text-right text-[#3b82f6] text-xs mt-2 border-t border-white/5 pt-2">{hoverData.ema20.toFixed(decimals)}</span>
+                </>
+              )}
+              {hoverData.sma200 && (
+                <>
+                  <span className="text-muted-foreground text-xs">SMA(200)</span>
+                  <span className="text-right text-[#f59e0b] text-xs">{hoverData.sma200.toFixed(decimals)}</span>
                 </>
               )}
               <div className="col-span-2 pt-2 mt-1 border-t border-white/5 flex justify-between">
