@@ -39,6 +39,8 @@ export default function Scanner() {
   const [scanType, setScanType] = useState<"ath" | "breakout">("ath");
   const [selectedCriteria, setSelectedCriteria] = useState<string[]>([]);
   const [enabled, setEnabled] = useState(false);
+  const [scanPage, setScanPage] = useState(1);
+  const SCAN_PER_PAGE = 20;
   const [scanKey, setScanKey] = useState(0);
 
   const criteriaParam = selectedCriteria.join(",");
@@ -57,6 +59,7 @@ export default function Scanner() {
   });
 
   const handleScan = () => {
+    setScanPage(1);
     if (enabled) {
       setScanKey(k => k + 1);
     } else {
@@ -298,16 +301,48 @@ export default function Scanner() {
           </div>
         )}
 
-        {!isLoading && !isFetching && results && results.length > 0 && (
+        {!isLoading && !isFetching && results && results.length > 0 && (() => {
+          const totalPages = Math.ceil(results.length / SCAN_PER_PAGE);
+          const paged = results.slice((scanPage - 1) * SCAN_PER_PAGE, scanPage * SCAN_PER_PAGE);
+          return (
           <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
             <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
               <h2 className="text-[10px] text-primary uppercase tracking-widest font-medium flex items-center gap-2">
                 {scanType === "ath" ? <Trophy className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
                 {results.length} {scanType === "ath" ? "All-Time High" : "Breakout"} Stocks Found
               </h2>
-              <span className="text-[10px] text-muted-foreground/50">
-                {market === "US" ? "US Market" : "KLSE"} · Data may be delayed up to 15 min
-              </span>
+              <div className="flex items-center gap-3">
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setScanPage(p => Math.max(1, p - 1))}
+                      disabled={scanPage <= 1}
+                      className="h-6 px-2 text-[10px]"
+                      data-testid="button-scan-prev"
+                    >
+                      <ArrowLeft className="w-3 h-3" />
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground/60 font-mono" data-testid="text-scan-page">
+                      {scanPage}/{totalPages}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setScanPage(p => Math.min(totalPages, p + 1))}
+                      disabled={scanPage >= totalPages}
+                      className="h-6 px-2 text-[10px]"
+                      data-testid="button-scan-next"
+                    >
+                      <ArrowLeft className="w-3 h-3 rotate-180" />
+                    </Button>
+                  </div>
+                )}
+                <span className="text-[10px] text-muted-foreground/50">
+                  {market === "US" ? "US Market" : "KLSE"} · Data may be delayed up to 15 min
+                </span>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -324,36 +359,36 @@ export default function Scanner() {
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((stock, idx) => (
+                  {paged.map((stock, idx) => (
                     <tr
                       key={stock.symbol}
                       className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors cursor-pointer"
                       onClick={() => navigate(`/?symbol=${stock.symbol}`)}
-                      data-testid={`row-scan-result-${idx}`}
+                      data-testid={`row-scan-result-${(scanPage - 1) * SCAN_PER_PAGE + idx}`}
                     >
                       <td className="py-3 px-6">
-                        <span className="font-mono text-primary font-medium text-xs" data-testid={`text-scan-symbol-${idx}`}>
+                        <span className="font-mono text-primary font-medium text-xs" data-testid={`text-scan-symbol-${(scanPage - 1) * SCAN_PER_PAGE + idx}`}>
                           {stock.symbol}
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-foreground text-xs truncate max-w-[200px] block" data-testid={`text-scan-name-${idx}`}>
+                        <span className="text-foreground text-xs truncate max-w-[200px] block" data-testid={`text-scan-name-${(scanPage - 1) * SCAN_PER_PAGE + idx}`}>
                           {stock.name}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className="font-mono text-foreground text-xs" data-testid={`text-scan-price-${idx}`}>
+                        <span className="font-mono text-foreground text-xs" data-testid={`text-scan-price-${(scanPage - 1) * SCAN_PER_PAGE + idx}`}>
                           {stock.currency} {stock.price.toFixed(2)}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className={`font-mono text-xs flex items-center justify-end gap-0.5 ${stock.changePercent >= 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-scan-change-${idx}`}>
+                        <span className={`font-mono text-xs flex items-center justify-end gap-0.5 ${stock.changePercent >= 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-scan-change-${(scanPage - 1) * SCAN_PER_PAGE + idx}`}>
                           {stock.changePercent >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                           {stock.changePercent >= 0 ? "+" : ""}{stock.changePercent.toFixed(2)}%
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className="font-mono text-muted-foreground text-xs" data-testid={`text-scan-volume-${idx}`}>
+                        <span className="font-mono text-muted-foreground text-xs" data-testid={`text-scan-volume-${(scanPage - 1) * SCAN_PER_PAGE + idx}`}>
                           {formatVolume(stock.volume)}
                         </span>
                       </td>
@@ -363,7 +398,7 @@ export default function Scanner() {
                         </span>
                       </td>
                       <td className="py-3 px-6">
-                        <span className="text-[11px] text-primary/80 font-light" data-testid={`text-scan-reason-${idx}`}>
+                        <span className="text-[11px] text-primary/80 font-light" data-testid={`text-scan-reason-${(scanPage - 1) * SCAN_PER_PAGE + idx}`}>
                           {stock.reason}
                         </span>
                       </td>
@@ -373,7 +408,8 @@ export default function Scanner() {
               </table>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
