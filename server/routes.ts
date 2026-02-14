@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import YahooFinance from "yahoo-finance2";
+import RSSParser from "rss-parser";
 import { storage } from "./storage";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -120,6 +121,123 @@ function getStartDate(range: string): Date {
     default: now.setMonth(now.getMonth() - 6);
   }
   return now;
+}
+
+const rssParser = new RSSParser();
+
+const MALAYSIA_PUBLISHERS = [
+  "the edge markets", "theedgemarkets", "the edge malaysia",
+  "new straits times", "nst", "the star", "thestar",
+  "malaysiakini", "free malaysia today", "freemalaysiatoday",
+  "bernama", "malay mail", "malaymail",
+  "sin chew", "sinchew", "china press",
+  "news daily", "newsdaily", "harian metro",
+  "berita harian", "utusan", "fokus",
+  "bursa marketplace", "bursa malaysia",
+  "the malaysian reserve", "malaysian reserve",
+  "digital news asia", "lowyat", "soyacincau",
+  "ringgit plus", "imoney", "i3investor",
+];
+
+async function fetchMalaysiaNews(companyName: string): Promise<any[]> {
+  const allNews: any[] = [];
+
+  try {
+    const queries = [
+      `${companyName} Bursa Malaysia`,
+      `${companyName} KLSE stock`,
+    ];
+
+    for (const query of queries) {
+      try {
+        const encoded = encodeURIComponent(query);
+        const rssUrl = `https://news.google.com/rss/search?q=${encoded}+when:30d&hl=en-MY&gl=MY&ceid=MY:en`;
+        const feed = await rssParser.parseURL(rssUrl);
+
+        for (const item of feed.items || []) {
+          const source = (item.creator || item["dc:creator"] || item.source || "").toString().toLowerCase();
+          const title = (item.title || "").toLowerCase();
+
+          const sourceText = `${source} ${title}`;
+          const isMalaysian = MALAYSIA_PUBLISHERS.some(pub => sourceText.includes(pub));
+
+          let publisher = item.creator || item["dc:creator"] || item.source || "";
+          if (typeof publisher === "object" && publisher !== null) {
+            publisher = (publisher as any)._ || (publisher as any).$ || JSON.stringify(publisher);
+          }
+          publisher = String(publisher);
+
+          const titleText = item.title || "";
+          if (titleText.includes(" - ")) {
+            const parts = titleText.split(" - ");
+            const lastPart = parts[parts.length - 1].trim();
+            if (lastPart.length < 40 && !publisher) {
+              publisher = lastPart;
+            }
+          }
+
+          allNews.push({
+            title: item.title || "",
+            publisher: publisher,
+            link: item.link || "",
+            publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+            thumbnail: null,
+            isMalaysian,
+          });
+        }
+      } catch (e) {
+        console.error("RSS fetch error for query:", query, e);
+      }
+    }
+  } catch (e) {
+    console.error("fetchMalaysiaNews error:", e);
+  }
+
+  const seen = new Set<string>();
+  const unique = allNews.filter(n => {
+    const key = n.title.toLowerCase().trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const malaysian = unique.filter(n => n.isMalaysian);
+  const others = unique.filter(n => !n.isMalaysian);
+
+  const result = [...malaysian, ...others].slice(0, 10).map(({ isMalaysian, ...rest }) => rest);
+
+  if (result.length === 0) {
+    try {
+      const encoded = encodeURIComponent(`${companyName} Malaysia stock market`);
+      const rssUrl = `https://news.google.com/rss/search?q=${encoded}&hl=en-MY&gl=MY&ceid=MY:en`;
+      const feed = await rssParser.parseURL(rssUrl);
+      return (feed.items || []).slice(0, 8).map(item => {
+        let publisher = item.creator || item["dc:creator"] || item.source || "";
+        if (typeof publisher === "object" && publisher !== null) {
+          publisher = (publisher as any)._ || (publisher as any).$ || "";
+        }
+        const titleText = item.title || "";
+        if (titleText.includes(" - ")) {
+          const parts = titleText.split(" - ");
+          const lastPart = parts[parts.length - 1].trim();
+          if (lastPart.length < 40 && !publisher) {
+            publisher = lastPart;
+          }
+        }
+        return {
+          title: item.title || "",
+          publisher: String(publisher),
+          link: item.link || "",
+          publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+          thumbnail: null,
+        };
+      });
+    } catch (e) {
+      console.error("Fallback news fetch error:", e);
+    }
+  }
+
+  return result;
 }
 
 export async function registerRoutes(
@@ -296,6 +414,7 @@ export async function registerRoutes(
     try {
       const { symbol } = req.params;
       const yahooSymbol = await resolveYahooSymbol(symbol);
+      const isKLSE = symbol.startsWith("KLSE:") || symbol.startsWith("MYX:") || yahooSymbol.endsWith(".KL");
 
       let companyName = "";
       try {
@@ -303,10 +422,16 @@ export async function registerRoutes(
         companyName = quoteResult?.longName || quoteResult?.shortName || "";
       } catch (e) {}
 
-      const searchQuery = companyName
-        ? companyName.replace(/\b(Bhd|Berhad|Inc|Ltd|Limited|PLC|Tbk|S\.A\.|AG)\b\.?$/gi, "").trim()
-        : yahooSymbol;
+      const cleanName = companyName
+        ? companyName.replace(/\b(Bhd|Berhad|Inc|Ltd|Limited|Corp|Corporation|PLC|Tbk|S\.A\.|AG)\b\.?/gi, "").trim()
+        : "";
 
+      if (isKLSE) {
+        const news = await fetchMalaysiaNews(cleanName || symbol.replace("KLSE:", "").replace("MYX:", ""));
+        return res.json(news);
+      }
+
+      const searchQuery = cleanName || yahooSymbol;
       const searchResult: any = await yahooFinance.search(searchQuery);
       const news = (searchResult.news || []).slice(0, 8).map((article: any) => ({
         title: article.title,
