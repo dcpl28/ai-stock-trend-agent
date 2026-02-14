@@ -240,6 +240,61 @@ async function fetchMalaysiaNews(companyName: string): Promise<any[]> {
   return result;
 }
 
+interface I3CompanyProfile {
+  sector: string;
+  subsector: string;
+  description: string;
+}
+
+async function fetchI3InvestorProfile(yahooSymbol: string): Promise<I3CompanyProfile | null> {
+  try {
+    const code = yahooSymbol.replace(".KL", "");
+    if (!code || !/^\d+$/.test(code)) return null;
+
+    const url = `https://klse.i3investor.com/web/stock/profile/${code}`;
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) return null;
+    const html = await response.text();
+
+    let sector = "";
+    let subsector = "";
+    let description = "";
+
+    const sectorMatch = html.match(/Sector:\s*<\/td>\s*<td[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i)
+      || html.match(/Sector:[\s\S]*?<[^>]*>([\w\s&]+)<\/[^>]*>/i);
+    if (sectorMatch) {
+      sector = sectorMatch[1].replace(/<[^>]*>/g, "").trim();
+    }
+
+    const subsectorMatch = html.match(/Subsector:\s*<\/td>\s*<td[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i)
+      || html.match(/Subsector:[\s\S]*?<[^>]*>([\w\s&]+)<\/[^>]*>/i);
+    if (subsectorMatch) {
+      subsector = subsectorMatch[1].replace(/<[^>]*>/g, "").trim();
+    }
+
+    const descMatch = html.match(/<h6[^>]*>\s*<strong>\s*Description\s*<\/strong>\s*<\/h6>\s*<p[^>]*>([\s\S]*?)<\/p>/i)
+      || html.match(/<h6[^>]*>\s*Description\s*<\/h6>\s*<p[^>]*>([\s\S]*?)<\/p>/i)
+      || html.match(/<strong>\s*Description\s*<\/strong>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i);
+    if (descMatch) {
+      description = descMatch[1].replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+    }
+
+    if (!sector && !description) return null;
+
+    return { sector, subsector, description };
+  } catch (e) {
+    console.error("i3investor profile fetch error:", e);
+    return null;
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -633,9 +688,28 @@ Market State: ${quote.marketState}
 
       const isKLSE = symbol.startsWith("KLSE:") || symbol.startsWith("MYX:") || quote?.exchange === "KLS" || quote?.currency === "MYR";
       const companyName = quote?.name || symbol;
-      const exchangeContext = isKLSE
-        ? `This is a Malaysian company listed on Bursa Malaysia (KLSE). The company name is "${companyName}". Currency is MYR (Malaysian Ringgit). Provide the company profile based on what you know about this specific Malaysian company.`
-        : `This stock trades on ${quote?.exchange || "a US exchange"}. The company name is "${companyName}". Provide the company profile based on what you know about this specific company.`;
+
+      let i3Profile: I3CompanyProfile | null = null;
+      if (isKLSE) {
+        const yahooSym = await resolveYahooSymbol(symbol);
+        i3Profile = await fetchI3InvestorProfile(yahooSym);
+      }
+
+      let exchangeContext: string;
+      if (isKLSE && i3Profile) {
+        exchangeContext = `This is a Malaysian company listed on Bursa Malaysia (KLSE). The company name is "${companyName}". Currency is MYR (Malaysian Ringgit).
+
+VERIFIED COMPANY PROFILE FROM BURSA MALAYSIA (use this data as the definitive company profile, DO NOT guess or make up different information):
+Sector: ${i3Profile.sector}
+Subsector: ${i3Profile.subsector}
+Description: ${i3Profile.description}
+
+Use the above verified information for the companyProfile fields. The "business" field should be based on the description above. The "sector" and "industry" fields must match the Sector and Subsector above.`;
+      } else if (isKLSE) {
+        exchangeContext = `This is a Malaysian company listed on Bursa Malaysia (KLSE). The company name is "${companyName}". Currency is MYR (Malaysian Ringgit). Provide the company profile based on what you know about this specific Malaysian company.`;
+      } else {
+        exchangeContext = `This stock trades on ${quote?.exchange || "a US exchange"}. The company name is "${companyName}". Provide the company profile based on what you know about this specific company.`;
+      }
 
       const prompt = `You are an expert stock market technical analyst. Analyze the following stock data for ${symbol} (${companyName}) and provide a comprehensive analysis.
 
