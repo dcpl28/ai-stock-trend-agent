@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search } from "lucide-react";
+import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface UserEntry {
@@ -36,9 +36,32 @@ export default function AdminConfig() {
   const [error, setError] = useState("");
   const [analysisLogs, setAnalysisLogs] = useState<AnalysisLogEntry[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [logUserFilter, setLogUserFilter] = useState("");
+  const [logDateFrom, setLogDateFrom] = useState("");
+  const [logDateTo, setLogDateTo] = useState("");
   const [rateLimit, setRateLimit] = useState(20);
   const [rateLimitInput, setRateLimitInput] = useState("20");
   const [savingRate, setSavingRate] = useState(false);
+
+  const filteredLogs = useMemo(() => {
+    return analysisLogs.filter(log => {
+      if (logUserFilter) {
+        const filter = logUserFilter.toLowerCase();
+        if (!log.userEmail.toLowerCase().includes(filter)) return false;
+      }
+      if (logDateFrom) {
+        const from = new Date(logDateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (new Date(log.createdAt) < from) return false;
+      }
+      if (logDateTo) {
+        const to = new Date(logDateTo);
+        to.setHours(23, 59, 59, 999);
+        if (new Date(log.createdAt) > to) return false;
+      }
+      return true;
+    });
+  }, [analysisLogs, logUserFilter, logDateFrom, logDateTo]);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -427,6 +450,56 @@ export default function AdminConfig() {
               Refresh
             </button>
           </div>
+
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="flex-1 min-w-[160px]">
+              <label className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-1 block">Filter User</label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/40" />
+                <Input
+                  value={logUserFilter}
+                  onChange={(e) => setLogUserFilter(e.target.value)}
+                  placeholder="Search by email..."
+                  className="h-8 pl-7 text-xs bg-background/50 border-white/[0.08] focus:border-primary/50"
+                  data-testid="input-log-user-filter"
+                />
+              </div>
+            </div>
+            <div className="min-w-[130px]">
+              <label className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-1 flex items-center gap-1 whitespace-nowrap">
+                <Calendar className="w-3 h-3" /> From
+              </label>
+              <Input
+                type="date"
+                value={logDateFrom}
+                onChange={(e) => setLogDateFrom(e.target.value)}
+                className="h-8 text-xs bg-background/50 border-white/[0.08] focus:border-primary/50 [color-scheme:dark]"
+                data-testid="input-log-date-from"
+              />
+            </div>
+            <div className="min-w-[130px]">
+              <label className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-1 flex items-center gap-1 whitespace-nowrap">
+                <Calendar className="w-3 h-3" /> To
+              </label>
+              <Input
+                type="date"
+                value={logDateTo}
+                onChange={(e) => setLogDateTo(e.target.value)}
+                className="h-8 text-xs bg-background/50 border-white/[0.08] focus:border-primary/50 [color-scheme:dark]"
+                data-testid="input-log-date-to"
+              />
+            </div>
+            {(logUserFilter || logDateFrom || logDateTo) && (
+              <button
+                onClick={() => { setLogUserFilter(""); setLogDateFrom(""); setLogDateTo(""); }}
+                className="h-8 px-3 text-[10px] text-muted-foreground hover:text-primary border border-white/[0.08] rounded-md transition-colors uppercase tracking-widest cursor-pointer"
+                data-testid="button-clear-log-filters"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
           {logsLoading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -437,34 +510,52 @@ export default function AdminConfig() {
               No analysis requests yet.
             </div>
           ) : (
-            <div className="space-y-1 max-h-[500px] overflow-y-auto">
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 text-[9px] uppercase tracking-widest text-muted-foreground/50 pb-2 border-b border-white/5 sticky top-0 bg-card/95 backdrop-blur-sm px-1">
-                <span>User</span>
-                <span>Stock</span>
-                <span>IP</span>
-                <span>Time</span>
-              </div>
-              {analysisLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-2 px-1 border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
-                  data-testid={`row-log-${log.id}`}
-                >
-                  <span className="text-xs text-foreground/80 truncate" data-testid={`text-log-email-${log.id}`}>
-                    {log.userEmail}
-                  </span>
-                  <span className="text-xs text-primary font-mono" data-testid={`text-log-symbol-${log.id}`}>
-                    {log.symbol}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/50 font-mono" data-testid={`text-log-ip-${log.id}`}>
-                    {log.ip ? log.ip.split(',')[0].trim() : "—"}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/50 whitespace-nowrap" data-testid={`text-log-time-${log.id}`}>
-                    {formatDate(log.createdAt)}
-                  </span>
+            <>
+              <div className="space-y-1 max-h-[500px] overflow-y-auto">
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 text-[9px] uppercase tracking-widest text-muted-foreground/50 pb-2 border-b border-white/5 sticky top-0 bg-card/95 backdrop-blur-sm px-1">
+                  <span>User</span>
+                  <span>Stock</span>
+                  <span>IP</span>
+                  <span>Time</span>
                 </div>
-              ))}
-            </div>
+                {filteredLogs.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground/50 text-xs font-light">
+                    No logs match your filters.
+                  </div>
+                ) : (
+                  filteredLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-2 px-1 border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                      data-testid={`row-log-${log.id}`}
+                    >
+                      <span className="text-xs text-foreground/80 truncate" data-testid={`text-log-email-${log.id}`}>
+                        {log.userEmail}
+                      </span>
+                      <span className="text-xs text-primary font-mono" data-testid={`text-log-symbol-${log.id}`}>
+                        {log.symbol}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/50 font-mono" data-testid={`text-log-ip-${log.id}`}>
+                        {log.ip ? log.ip.split(',')[0].trim() : "—"}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/50 whitespace-nowrap" data-testid={`text-log-time-${log.id}`}>
+                        {formatDate(log.createdAt)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest" data-testid="text-log-total-count">
+                  Showing {filteredLogs.length} of {analysisLogs.length} requests
+                </span>
+                {logUserFilter && (
+                  <span className="text-[10px] text-primary/70 uppercase tracking-widest">
+                    Filtered: "{logUserFilter}"
+                  </span>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
