@@ -139,13 +139,15 @@ const MALAYSIA_PUBLISHERS = [
   "ringgit plus", "imoney", "i3investor",
 ];
 
-async function fetchMalaysiaNews(companyName: string): Promise<any[]> {
+async function fetchMalaysiaNews(companyName: string, ticker?: string): Promise<any[]> {
   const allNews: any[] = [];
 
   try {
+    const quotedName = `"${companyName}"`;
+    const tickerPart = ticker ? ` ${ticker}` : "";
     const queries = [
-      `${companyName} Bursa Malaysia`,
-      `${companyName} KLSE stock`,
+      `${quotedName}${tickerPart} Bursa Malaysia`,
+      `${quotedName}${tickerPart} KLSE stock`,
     ];
 
     for (const query of queries) {
@@ -484,7 +486,8 @@ export async function registerRoutes(
         : "";
 
       if (isKLSE) {
-        const news = await fetchMalaysiaNews(cleanName || symbol.replace("KLSE:", "").replace("MYX:", ""));
+        const ticker = symbol.replace("KLSE:", "").replace("MYX:", "").toUpperCase();
+        const news = await fetchMalaysiaNews(cleanName || ticker, ticker);
         return res.json(news);
       }
 
