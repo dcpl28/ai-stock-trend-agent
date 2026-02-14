@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Newspaper, ExternalLink, Loader2 } from "lucide-react";
+import { Newspaper, ExternalLink, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface NewsArticle {
   title: string;
@@ -15,7 +15,11 @@ interface StockNewsProps {
   symbol: string;
 }
 
+const NEWS_PER_PAGE = 5;
+
 export function StockNews({ symbol }: StockNewsProps) {
+  const [page, setPage] = useState(1);
+
   const { data: news, isLoading } = useQuery<NewsArticle[]>({
     queryKey: ["/api/news", symbol],
     queryFn: async () => {
@@ -53,24 +57,52 @@ export function StockNews({ symbol }: StockNewsProps) {
 
   if (!news || news.length === 0) return null;
 
+  const totalPages = Math.ceil(news.length / NEWS_PER_PAGE);
+  const paginated = news.slice((page - 1) * NEWS_PER_PAGE, page * NEWS_PER_PAGE);
+
   return (
     <Card className="glass-panel border-white/5" data-testid="card-stock-news">
       <CardHeader className="pb-3 border-b border-white/5">
-        <CardTitle className="flex items-center gap-2 text-[10px] text-primary uppercase tracking-widest font-medium">
-          <Newspaper className="w-4 h-4 text-primary" />
-          Latest News
+        <CardTitle className="flex items-center justify-between text-[10px] text-primary uppercase tracking-widest font-medium">
+          <span className="flex items-center gap-2">
+            <Newspaper className="w-4 h-4 text-primary" />
+            Latest News
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed rounded border border-white/[0.06] transition-colors cursor-pointer"
+                data-testid="button-news-prev"
+              >
+                <ChevronLeft className="w-3 h-3" />
+              </button>
+              <span className="text-[9px] text-muted-foreground/60 px-1.5 tabular-nums">
+                {page}/{totalPages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed rounded border border-white/[0.06] transition-colors cursor-pointer"
+                data-testid="button-news-next"
+              >
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <div className="space-y-3">
-          {news.map((article, i) => (
+          {paginated.map((article, i) => (
             <a
-              key={i}
+              key={`${page}-${i}`}
               href={article.link}
               target="_blank"
               rel="noopener noreferrer"
               className="flex gap-3 p-3 rounded-lg border border-white/5 hover:border-primary/20 hover:bg-white/[0.02] transition-all group"
-              data-testid={`link-news-${i}`}
+              data-testid={`link-news-${(page - 1) * NEWS_PER_PAGE + i}`}
             >
               {article.thumbnail && (
                 <img
