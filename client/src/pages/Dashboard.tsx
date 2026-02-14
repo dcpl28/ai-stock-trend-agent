@@ -7,7 +7,7 @@ import { StockNews } from "@/components/StockNews";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -85,6 +85,7 @@ export default function Dashboard() {
   const { email, isAdmin, remainingMs, logout, checkSession } = useAuth();
   const [, navigate] = useLocation();
   const [timeLeft, setTimeLeft] = useState(remainingMs);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setTimeLeft(remainingMs);
@@ -153,7 +154,8 @@ export default function Dashboard() {
       }
       if (res.status === 429) {
         const data = await res.json();
-        throw new Error(data.message || 'Rate limit exceeded. Please try again later.');
+        setRateLimitMessage(data.message || 'You have reached the maximum number of AI analysis requests per hour. Please wait and try again later.');
+        throw new Error(data.message);
       }
       if (!res.ok) throw new Error('Failed to fetch analysis');
       return res.json();
@@ -183,6 +185,31 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen font-sans pb-20">
+      {rateLimitMessage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-card border border-primary/20 rounded-2xl p-8 max-w-md mx-4 shadow-2xl shadow-black/60 text-center space-y-5">
+            <div className="w-14 h-14 mx-auto rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <AlertTriangle className="w-7 h-7 text-amber-500" />
+            </div>
+            <h3 className="text-lg font-serif font-medium text-foreground">
+              Request Limit Reached
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed font-light">
+              {rateLimitMessage}
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              Your limit will reset automatically. You can still view charts and stock data.
+            </p>
+            <button
+              onClick={() => setRateLimitMessage(null)}
+              className="w-full h-10 bg-primary text-primary-foreground rounded-lg text-sm font-medium tracking-widest hover:bg-primary/90 transition-colors cursor-pointer"
+              data-testid="button-dismiss-rate-limit"
+            >
+              OK, GOT IT
+            </button>
+          </div>
+        </div>
+      )}
       <div className="fixed top-0 left-0 w-full h-96 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-transparent pointer-events-none" />
       
       <div className="max-w-7xl mx-auto p-4 md:p-8 relative z-10 space-y-12">
