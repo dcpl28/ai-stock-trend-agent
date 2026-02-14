@@ -7,7 +7,7 @@ import { StockNews } from "@/components/StockNews";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle, ArrowLeft } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -80,6 +80,7 @@ interface AnalysisResponse {
 export default function Dashboard() {
   const urlParams = new URLSearchParams(window.location.search);
   const initialSymbol = urlParams.get("symbol") || "KLSE:MAYBANK";
+  const fromScanner = urlParams.get("from") === "scanner";
   const [symbol, setSymbol] = useState(initialSymbol);
   const [searchInput, setSearchInput] = useState("");
   const [analysisRequested, setAnalysisRequested] = useState(false);
@@ -220,6 +221,16 @@ export default function Dashboard() {
         
         <div className="flex items-center justify-between bg-card/30 border border-primary/10 rounded-lg px-4 py-2.5">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            {fromScanner && (
+              <button
+                onClick={() => navigate("/scanner")}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors cursor-pointer mr-1"
+                data-testid="button-back-scanner"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Scanner
+              </button>
+            )}
             <span className="font-light" data-testid="text-session-email">{email}</span>
             <span className="text-primary/30">|</span>
             <span className={`flex items-center gap-1.5 font-mono text-xs ${timeLeft < 120000 ? 'text-red-400' : 'text-muted-foreground'}`} data-testid="text-session-timer">

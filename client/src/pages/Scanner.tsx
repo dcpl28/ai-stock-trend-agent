@@ -363,7 +363,7 @@ export default function Scanner() {
                     <tr
                       key={stock.symbol}
                       className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors cursor-pointer"
-                      onClick={() => navigate(`/?symbol=${stock.symbol}`)}
+                      onClick={() => navigate(`/?symbol=${stock.symbol}&from=scanner`)}
                       data-testid={`row-scan-result-${(scanPage - 1) * SCAN_PER_PAGE + idx}`}
                     >
                       <td className="py-3 px-6">
