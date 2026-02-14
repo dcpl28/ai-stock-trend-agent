@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar } from "lucide-react";
+import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface UserEntry {
@@ -41,9 +41,14 @@ export default function AdminConfig() {
   const [logDateTo, setLogDateTo] = useState("");
   const [logPage, setLogPage] = useState(1);
   const LOGS_PER_PAGE = 20;
+  const [userPage, setUserPage] = useState(1);
+  const USERS_PER_PAGE = 10;
   const [rateLimit, setRateLimit] = useState(20);
   const [rateLimitInput, setRateLimitInput] = useState("20");
   const [savingRate, setSavingRate] = useState(false);
+
+  const totalUserPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
+  const paginatedUsers = users.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
 
   const filteredLogs = useMemo(() => {
     return analysisLogs.filter(log => {
@@ -67,6 +72,16 @@ export default function AdminConfig() {
 
   const totalLogPages = Math.max(1, Math.ceil(filteredLogs.length / LOGS_PER_PAGE));
   const paginatedLogs = filteredLogs.slice((logPage - 1) * LOGS_PER_PAGE, logPage * LOGS_PER_PAGE);
+
+  const stockFrequency = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const log of filteredLogs) {
+      counts[log.symbol] = (counts[log.symbol] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+  }, [filteredLogs]);
 
   useEffect(() => {
     setLogPage(1);
@@ -301,7 +316,7 @@ export default function AdminConfig() {
             </div>
           ) : (
             <div className="space-y-3">
-              {users.map((user) => (
+              {paginatedUsers.map((user) => (
                 <div
                   key={user.id}
                   className={`bg-background/20 border rounded-xl p-4 transition-colors ${
@@ -409,6 +424,45 @@ export default function AdminConfig() {
                   </div>
                 </div>
               ))}
+              {totalUserPages > 1 && (
+                <div className="flex items-center justify-center gap-1 pt-3">
+                  <button
+                    onClick={() => setUserPage(1)}
+                    disabled={userPage === 1}
+                    className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer"
+                    data-testid="button-user-first"
+                  >
+                    «
+                  </button>
+                  <button
+                    onClick={() => setUserPage(p => Math.max(1, p - 1))}
+                    disabled={userPage === 1}
+                    className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer"
+                    data-testid="button-user-prev"
+                  >
+                    ‹
+                  </button>
+                  <span className="text-[10px] text-muted-foreground/70 px-3 uppercase tracking-widest">
+                    Page {userPage} of {totalUserPages}
+                  </span>
+                  <button
+                    onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
+                    disabled={userPage === totalUserPages}
+                    className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer"
+                    data-testid="button-user-next"
+                  >
+                    ›
+                  </button>
+                  <button
+                    onClick={() => setUserPage(totalUserPages)}
+                    disabled={userPage === totalUserPages}
+                    className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer"
+                    data-testid="button-user-last"
+                  >
+                    »
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -444,6 +498,37 @@ export default function AdminConfig() {
             </span>
           </div>
         </div>
+
+        {stockFrequency.length > 0 && (
+          <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
+            <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+              <BarChart3 className="w-3.5 h-3.5 text-primary" />
+              Most Searched Stocks
+            </h2>
+            <div className="space-y-2">
+              {stockFrequency.map(([symbol, count], i) => {
+                const maxCount = stockFrequency[0][1];
+                const pct = (count / maxCount) * 100;
+                return (
+                  <div key={symbol} className="flex items-center gap-3" data-testid={`row-freq-${symbol}`}>
+                    <span className="text-[10px] text-muted-foreground/50 w-5 text-right">{i + 1}.</span>
+                    <span className="text-xs text-primary font-mono w-28 truncate" data-testid={`text-freq-symbol-${symbol}`}>{symbol}</span>
+                    <div className="flex-1 h-5 bg-background/30 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-primary/60 to-primary/30 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                        style={{ width: `${Math.max(pct, 8)}%` }}
+                      >
+                        {pct > 25 && <span className="text-[9px] text-primary-foreground/80 font-medium">{count}</span>}
+                      </div>
+                    </div>
+                    {pct <= 25 && <span className="text-[10px] text-muted-foreground/60 w-6">{count}</span>}
+                    {i === 0 && <TrendingUp className="w-3 h-3 text-primary/60 shrink-0" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
           <div className="flex items-center justify-between mb-4">
