@@ -82,6 +82,7 @@ export default function Dashboard() {
   const initialSymbol = urlParams.get("symbol") || "KLSE:MAYBANK";
   const [symbol, setSymbol] = useState(initialSymbol);
   const [searchInput, setSearchInput] = useState("");
+  const [analysisRequested, setAnalysisRequested] = useState(false);
   const { email, isAdmin, remainingMs, logout, checkSession } = useAuth();
   const [, navigate] = useLocation();
   const [timeLeft, setTimeLeft] = useState(remainingMs);
@@ -160,7 +161,7 @@ export default function Dashboard() {
       if (!res.ok) throw new Error('Failed to fetch analysis');
       return res.json();
     },
-    enabled: !!stockData?.candles && stockData.candles.length > 0,
+    enabled: analysisRequested && !!stockData?.candles && stockData.candles.length > 0,
     staleTime: 10 * 60 * 1000,
     retry: 1,
   });
@@ -173,6 +174,9 @@ export default function Dashboard() {
          searchSym = searchSym.replace("MYX:", "KLSE:");
       }
       setSymbol(searchSym);
+      setAnalysisRequested(true);
+    } else {
+      setAnalysisRequested(true);
     }
   };
 
