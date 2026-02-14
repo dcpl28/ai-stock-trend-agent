@@ -268,13 +268,15 @@ async function fetchI3InvestorProfile(yahooSymbol: string): Promise<I3CompanyPro
     let description = "";
 
     const sectorMatch = html.match(/Sector:\s*<\/td>\s*<td[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i)
-      || html.match(/Sector:[\s\S]*?<[^>]*>([\w\s&]+)<\/[^>]*>/i);
+      || html.match(/Sector:&nbsp;\s*<a[^>]*class="d-none"[^>]*>([\s\S]*?)<\/a>/i)
+      || html.match(/Sector:(?:&nbsp;|\s)*(?:<a[^>]*>[\s\S]*?<\/a>\s*)*([\w\s&\/]+)\s*<\/p>/i);
     if (sectorMatch) {
       sector = sectorMatch[1].replace(/<[^>]*>/g, "").trim();
     }
 
     const subsectorMatch = html.match(/Subsector:\s*<\/td>\s*<td[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i)
-      || html.match(/Subsector:[\s\S]*?<[^>]*>([\w\s&]+)<\/[^>]*>/i);
+      || html.match(/Subsector:&nbsp;\s*<a[^>]*class="d-none"[^>]*>([\s\S]*?)<\/a>/i)
+      || html.match(/Subsector:(?:&nbsp;|\s)*(?:<a[^>]*>[\s\S]*?<\/a>\s*)*([\w\s&\/]+)\s*<\/p>/i);
     if (subsectorMatch) {
       subsector = subsectorMatch[1].replace(/<[^>]*>/g, "").trim();
     }
