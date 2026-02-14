@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Crown, Scan, TrendingUp, Trophy, Loader2, ArrowLeft, ArrowUpRight, ArrowDownRight, Filter } from "lucide-react";
+import { Crown, Scan, TrendingUp, Trophy, Loader2, ArrowLeft, ArrowUpRight, ArrowDownRight, Filter, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -41,6 +41,20 @@ export default function Scanner() {
   const [enabled, setEnabled] = useState(false);
   const [scanPage, setScanPage] = useState(1);
   const SCAN_PER_PAGE = 20;
+  type SortKey = "symbol" | "name" | "price" | "changePercent" | "volume" | "marketCap";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir(key === "symbol" || key === "name" ? "asc" : "desc");
+    }
+    setScanPage(1);
+  };
+
   const [scanKey, setScanKey] = useState(0);
 
   const criteriaParam = selectedCriteria.join(",");
@@ -58,8 +72,23 @@ export default function Scanner() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const sortedResults = React.useMemo(() => {
+    if (!results || !sortKey) return results;
+    return [...results].sort((a, b) => {
+      let av: any = a[sortKey];
+      let bv: any = b[sortKey];
+      if (typeof av === "string") {
+        av = av.toLowerCase();
+        bv = (bv as string).toLowerCase();
+        return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      return sortDir === "asc" ? av - bv : bv - av;
+    });
+  }, [results, sortKey, sortDir]);
+
   const handleScan = () => {
     setScanPage(1);
+    setSortKey(null);
     if (enabled) {
       setScanKey(k => k + 1);
     } else {
@@ -301,9 +330,13 @@ export default function Scanner() {
           </div>
         )}
 
-        {!isLoading && !isFetching && results && results.length > 0 && (() => {
-          const totalPages = Math.ceil(results.length / SCAN_PER_PAGE);
-          const paged = results.slice((scanPage - 1) * SCAN_PER_PAGE, scanPage * SCAN_PER_PAGE);
+        {!isLoading && !isFetching && sortedResults && sortedResults.length > 0 && (() => {
+          const totalPages = Math.ceil(sortedResults.length / SCAN_PER_PAGE);
+          const paged = sortedResults.slice((scanPage - 1) * SCAN_PER_PAGE, scanPage * SCAN_PER_PAGE);
+          const SortIcon = ({ col }: { col: SortKey }) => {
+            if (sortKey !== col) return <ChevronDown className="w-2.5 h-2.5 opacity-30 inline ml-0.5" />;
+            return sortDir === "asc" ? <ChevronUp className="w-2.5 h-2.5 text-primary inline ml-0.5" /> : <ChevronDown className="w-2.5 h-2.5 text-primary inline ml-0.5" />;
+          };
           return (
           <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
             <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
@@ -349,12 +382,12 @@ export default function Scanner() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Symbol</th>
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Name</th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Price</th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Change</th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Volume</th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 hidden md:table-cell">Mkt Cap</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("symbol")} data-testid="sort-symbol">Symbol<SortIcon col="symbol" /></th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("name")} data-testid="sort-name">Name<SortIcon col="name" /></th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("price")} data-testid="sort-price">Price<SortIcon col="price" /></th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("changePercent")} data-testid="sort-change">Change<SortIcon col="changePercent" /></th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("volume")} data-testid="sort-volume">Volume<SortIcon col="volume" /></th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 hidden md:table-cell cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("marketCap")} data-testid="sort-mktcap">Mkt Cap<SortIcon col="marketCap" /></th>
                     <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Signal</th>
                   </tr>
                 </thead>
