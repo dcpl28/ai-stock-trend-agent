@@ -39,6 +39,8 @@ export default function AdminConfig() {
   const [logUserFilter, setLogUserFilter] = useState("");
   const [logDateFrom, setLogDateFrom] = useState("");
   const [logDateTo, setLogDateTo] = useState("");
+  const [logPage, setLogPage] = useState(1);
+  const LOGS_PER_PAGE = 20;
   const [rateLimit, setRateLimit] = useState(20);
   const [rateLimitInput, setRateLimitInput] = useState("20");
   const [savingRate, setSavingRate] = useState(false);
@@ -63,6 +65,13 @@ export default function AdminConfig() {
     });
   }, [analysisLogs, logUserFilter, logDateFrom, logDateTo]);
 
+  const totalLogPages = Math.max(1, Math.ceil(filteredLogs.length / LOGS_PER_PAGE));
+  const paginatedLogs = filteredLogs.slice((logPage - 1) * LOGS_PER_PAGE, logPage * LOGS_PER_PAGE);
+
+  useEffect(() => {
+    setLogPage(1);
+  }, [logUserFilter, logDateFrom, logDateTo]);
+
   useEffect(() => {
     if (!isAdmin) {
       navigate("/");
@@ -86,7 +95,7 @@ export default function AdminConfig() {
 
   const fetchAnalysisLogs = async () => {
     try {
-      const res = await fetch("/api/admin/analysis-logs?limit=200");
+      const res = await fetch("/api/admin/analysis-logs?limit=1000");
       if (res.ok) {
         setAnalysisLogs(await res.json());
       }
@@ -523,7 +532,7 @@ export default function AdminConfig() {
                     No logs match your filters.
                   </div>
                 ) : (
-                  filteredLogs.map((log) => (
+                  paginatedLogs.map((log) => (
                     <div
                       key={log.id}
                       className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-2 px-1 border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
@@ -545,14 +554,55 @@ export default function AdminConfig() {
                   ))
                 )}
               </div>
-              <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest" data-testid="text-log-total-count">
-                  Showing {filteredLogs.length} of {analysisLogs.length} requests
-                </span>
-                {logUserFilter && (
-                  <span className="text-[10px] text-primary/70 uppercase tracking-widest">
-                    Filtered: "{logUserFilter}"
+              <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest" data-testid="text-log-total-count">
+                    Total: {filteredLogs.length} {filteredLogs.length !== analysisLogs.length ? `of ${analysisLogs.length}` : ""} requests
                   </span>
+                  {logUserFilter && (
+                    <span className="text-[10px] text-primary/70 uppercase tracking-widest">
+                      Filtered: "{logUserFilter}"
+                    </span>
+                  )}
+                </div>
+                {totalLogPages > 1 && (
+                  <div className="flex items-center justify-center gap-1 pt-1">
+                    <button
+                      onClick={() => setLogPage(1)}
+                      disabled={logPage === 1}
+                      className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer"
+                      data-testid="button-log-first"
+                    >
+                      «
+                    </button>
+                    <button
+                      onClick={() => setLogPage(p => Math.max(1, p - 1))}
+                      disabled={logPage === 1}
+                      className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer"
+                      data-testid="button-log-prev"
+                    >
+                      ‹
+                    </button>
+                    <span className="text-[10px] text-muted-foreground/70 px-3 uppercase tracking-widest">
+                      Page {logPage} of {totalLogPages}
+                    </span>
+                    <button
+                      onClick={() => setLogPage(p => Math.min(totalLogPages, p + 1))}
+                      disabled={logPage === totalLogPages}
+                      className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer"
+                      data-testid="button-log-next"
+                    >
+                      ›
+                    </button>
+                    <button
+                      onClick={() => setLogPage(totalLogPages)}
+                      disabled={logPage === totalLogPages}
+                      className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer"
+                      data-testid="button-log-last"
+                    >
+                      »
+                    </button>
+                  </div>
                 )}
               </div>
             </>
