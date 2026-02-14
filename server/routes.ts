@@ -905,9 +905,9 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
       const results: any[] = [];
       const batchSize = 10;
       const needsChart = type === "breakout" || criteria.some(c =>
-        ["above_ema5", "above_ema20", "above_sma200", "ema20_cross_sma200"].includes(c)
+        ["above_ema5", "above_ema20", "above_sma200", "ema20_above_sma200", "ema20_cross_sma200"].includes(c)
       );
-      const chartDays = criteria.includes("above_sma200") || criteria.includes("ema20_cross_sma200") ? 400 : 45;
+      const chartDays = criteria.includes("above_sma200") || criteria.includes("ema20_above_sma200") || criteria.includes("ema20_cross_sma200") ? 400 : 45;
 
       for (let i = 0; i < symbols.length; i += batchSize) {
         const batch = symbols.slice(i, i + batchSize);
@@ -1037,17 +1037,24 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
               }
             }
 
+            if (criteria.includes("ema20_above_sma200")) {
+              if (closes.length < 201) return null;
+              const ema20 = calcEMA(closes, 20);
+              const sma200 = calcSMA(closes, 200);
+              if (!ema20 || !sma200) return null;
+              if (ema20 > sma200) {
+                reasons.push(`EMA20 (${ema20.toFixed(2)}) above SMA200 (${sma200.toFixed(2)})`);
+              } else {
+                return null;
+              }
+            }
+
             if (criteria.includes("ema20_cross_sma200")) {
               if (closes.length < 201) return null;
               const ema20Series = calcEMASeries(closes, 20);
-              const sma200Now = calcSMA(closes, 200);
-              const sma200Prev = calcSMA(closes.slice(0, -1), 200);
-              const ema20Now = ema20Series[ema20Series.length - 1];
-              const ema20Prev = ema20Series[ema20Series.length - 2];
-              if (!sma200Now || !sma200Prev || !ema20Now || !ema20Prev) return null;
 
               const crossedUp5d = (() => {
-                for (let d = 1; d <= 5 && d < ema20Series.length; d++) {
+                for (let d = 0; d <= 5 && d < ema20Series.length; d++) {
                   const idx = ema20Series.length - 1 - d;
                   const prevIdx = idx - 1;
                   if (prevIdx < 0 || idx < 200) continue;
@@ -1059,12 +1066,8 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
                 return false;
               })();
 
-              if (ema20Now > sma200Now || crossedUp5d) {
-                if (crossedUp5d) {
-                  reasons.push(`EMA20 crossed above SMA200 (recent golden cross)`);
-                } else {
-                  reasons.push(`EMA20 (${ema20Now.toFixed(2)}) above SMA200 (${sma200Now.toFixed(2)})`);
-                }
+              if (crossedUp5d) {
+                reasons.push(`EMA20 crossed above SMA200 (recent golden cross)`);
               } else {
                 return null;
               }

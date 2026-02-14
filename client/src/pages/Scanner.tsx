@@ -28,7 +28,8 @@ const INDICATOR_CRITERIA = [
   { id: "above_ema5", label: "Above EMA 5", group: "indicator" },
   { id: "above_ema20", label: "Above EMA 20", group: "indicator" },
   { id: "above_sma200", label: "Above SMA 200", group: "indicator" },
-  { id: "ema20_cross_sma200", label: "EMA 20 cross SMA 200", group: "indicator" },
+  { id: "ema20_above_sma200", label: "EMA 20 above SMA 200", group: "indicator" },
+  { id: "ema20_cross_sma200", label: "EMA 20 cross SMA 200 (Golden Cross)", group: "indicator" },
 ] as const;
 
 export default function Scanner() {
