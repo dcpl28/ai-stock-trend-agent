@@ -354,23 +354,11 @@ export async function registerRoutes(
 
   app.post("/api/auth/admin-login", async (req, res) => {
     try {
-      const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.ip || "unknown";
-
-      const ipBlocked = await storage.isIpBlocked(clientIp);
-      if (ipBlocked) {
-        return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
-      }
-
       const { password } = req.body;
       if (!password || password !== ADMIN_PASSWORD) {
-        const result = await storage.recordFailedLogin(clientIp);
-        if (result.blocked) {
-          return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
-        }
-        return res.status(401).json({ error: `Invalid admin password. ${3 - result.attempts} attempt(s) remaining before your IP is blocked.` });
+        return res.status(401).json({ error: "Invalid admin password" });
       }
 
-      await storage.resetFailedLogins(clientIp);
       req.session.userId = "admin";
       req.session.email = "admin";
       req.session.isAdmin = true;
