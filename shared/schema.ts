@@ -49,6 +49,17 @@ export const blockedIps = pgTable("blocked_ips", {
 
 export type BlockedIp = typeof blockedIps.$inferSelect;
 
+export const ipRules = pgTable("ip_rules", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  type: text("type").notNull(),
+  startIp: text("start_ip").notNull(),
+  endIp: text("end_ip").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type IpRule = typeof ipRules.$inferSelect;
+
 export const conversations = pgTable("conversations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   title: text("title").notNull(),

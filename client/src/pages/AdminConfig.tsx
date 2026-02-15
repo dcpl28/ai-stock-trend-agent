@@ -31,6 +31,15 @@ interface BlockedIpEntry {
   blockedAt: string | null;
 }
 
+interface IpRuleEntry {
+  id: number;
+  type: string;
+  startIp: string;
+  endIp: string;
+  description: string | null;
+  createdAt: string;
+}
+
 export default function AdminConfig() {
   const { isAdmin, logout } = useAuth();
   const [, navigate] = useLocation();
@@ -57,6 +66,13 @@ export default function AdminConfig() {
   const [savingRate, setSavingRate] = useState(false);
   const [blockedIps, setBlockedIps] = useState<BlockedIpEntry[]>([]);
   const [blockedIpsLoading, setBlockedIpsLoading] = useState(true);
+  const [ipRules, setIpRules] = useState<IpRuleEntry[]>([]);
+  const [ipRulesLoading, setIpRulesLoading] = useState(true);
+  const [newRuleType, setNewRuleType] = useState<"block" | "whitelist">("whitelist");
+  const [newRuleStartIp, setNewRuleStartIp] = useState("");
+  const [newRuleEndIp, setNewRuleEndIp] = useState("");
+  const [newRuleDesc, setNewRuleDesc] = useState("");
+  const [addingRule, setAddingRule] = useState(false);
 
   const totalUserPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
   const paginatedUsers = users.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
@@ -107,6 +123,7 @@ export default function AdminConfig() {
     fetchAnalysisLogs();
     fetchSettings();
     fetchBlockedIps();
+    fetchIpRules();
   }, [isAdmin]);
 
   const fetchUsers = async () => {
@@ -147,6 +164,47 @@ export default function AdminConfig() {
       const res = await fetch(`/api/admin/blocked-ips/${id}`, { method: "DELETE" });
       if (res.ok) {
         setBlockedIps(prev => prev.filter(ip => ip.id !== id));
+      }
+    } catch {}
+  };
+
+  const fetchIpRules = async () => {
+    try {
+      const res = await fetch("/api/admin/ip-rules");
+      if (res.ok) {
+        setIpRules(await res.json());
+      }
+    } catch {} finally {
+      setIpRulesLoading(false);
+    }
+  };
+
+  const addIpRule = async () => {
+    if (!newRuleStartIp || !newRuleEndIp) return;
+    setAddingRule(true);
+    try {
+      const res = await fetch("/api/admin/ip-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: newRuleType, startIp: newRuleStartIp, endIp: newRuleEndIp, description: newRuleDesc || undefined }),
+      });
+      if (res.ok) {
+        const rule = await res.json();
+        setIpRules(prev => [rule, ...prev]);
+        setNewRuleStartIp("");
+        setNewRuleEndIp("");
+        setNewRuleDesc("");
+      }
+    } catch {} finally {
+      setAddingRule(false);
+    }
+  };
+
+  const deleteIpRule = async (id: number) => {
+    try {
+      const res = await fetch(`/api/admin/ip-rules/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setIpRules(prev => prev.filter(r => r.id !== id));
       }
     } catch {}
   };
@@ -793,6 +851,125 @@ export default function AdminConfig() {
                         >
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Unblock
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/5">
+            <h2 className="text-[10px] text-primary uppercase tracking-widest font-medium flex items-center gap-2">
+              <Globe className="w-3.5 h-3.5" />
+              IP Access Rules
+            </h2>
+            <p className="text-[10px] text-muted-foreground/50 mt-1 font-light">
+              Block IP ranges or whitelist specific IPs. If any whitelist rules exist, only whitelisted IPs are allowed.
+            </p>
+          </div>
+
+          <div className="px-6 py-4 border-b border-white/5 space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <select
+                value={newRuleType}
+                onChange={(e) => setNewRuleType(e.target.value as "block" | "whitelist")}
+                className="h-9 bg-background/50 border border-white/[0.08] rounded-lg px-3 text-xs text-foreground/90 focus:outline-none focus:border-primary/40"
+                data-testid="select-rule-type"
+              >
+                <option value="whitelist">Whitelist</option>
+                <option value="block">Block</option>
+              </select>
+              <Input
+                placeholder="Start IP (e.g. 1.0.0.0)"
+                value={newRuleStartIp}
+                onChange={(e) => setNewRuleStartIp(e.target.value)}
+                className="h-9 w-40 bg-background/50 border-white/[0.08] text-xs placeholder:text-muted-foreground/30"
+                data-testid="input-start-ip"
+              />
+              <span className="text-xs text-muted-foreground/40">to</span>
+              <Input
+                placeholder="End IP (e.g. 1.255.255.255)"
+                value={newRuleEndIp}
+                onChange={(e) => setNewRuleEndIp(e.target.value)}
+                className="h-9 w-44 bg-background/50 border-white/[0.08] text-xs placeholder:text-muted-foreground/30"
+                data-testid="input-end-ip"
+              />
+              <Input
+                placeholder="Description (optional)"
+                value={newRuleDesc}
+                onChange={(e) => setNewRuleDesc(e.target.value)}
+                className="h-9 w-48 bg-background/50 border-white/[0.08] text-xs placeholder:text-muted-foreground/30"
+                data-testid="input-rule-desc"
+              />
+              <Button
+                onClick={addIpRule}
+                disabled={addingRule || !newRuleStartIp || !newRuleEndIp}
+                className="h-9 px-4 text-[10px] uppercase tracking-widest cursor-pointer"
+                data-testid="button-add-ip-rule"
+              >
+                {addingRule ? <Loader2 className="w-3 h-3 animate-spin" /> : "Add Rule"}
+              </Button>
+            </div>
+          </div>
+
+          {ipRulesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            </div>
+          ) : ipRules.length === 0 ? (
+            <div className="px-6 py-8 text-center">
+              <Globe className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground/60 font-light">No IP rules configured. All IPs are allowed by default.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" data-testid="table-ip-rules">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Type</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">IP Range</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Description</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Created</th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ipRules.map(rule => (
+                    <tr key={rule.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3 px-6">
+                        {rule.type === "whitelist" ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
+                            <CheckCircle className="w-2.5 h-2.5" /> Whitelist
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
+                            <Ban className="w-2.5 h-2.5" /> Block
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs text-foreground/90">
+                        {rule.startIp} — {rule.endIp}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground/70">
+                        {rule.description || "—"}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground/70">
+                        {new Date(rule.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-6 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteIpRule(rule.id)}
+                          className="text-[10px] uppercase tracking-widest text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-3 cursor-pointer"
+                          data-testid={`button-delete-rule-${rule.id}`}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Remove
                         </Button>
                       </td>
                     </tr>

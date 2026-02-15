@@ -308,6 +308,11 @@ export async function registerRoutes(
     try {
       const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.ip || "unknown";
 
+      const ipCheck = await storage.isIpAllowed(clientIp);
+      if (!ipCheck.allowed) {
+        return res.status(403).json({ error: ipCheck.reason });
+      }
+
       const ipBlocked = await storage.isIpBlocked(clientIp);
       if (ipBlocked) {
         return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
@@ -670,6 +675,44 @@ export async function registerRoutes(
       res.json({ ok: true });
     } catch {
       res.status(500).json({ error: "Failed to unblock IP" });
+    }
+  });
+
+  app.get("/api/admin/ip-rules", requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      const rules = await storage.getIpRules();
+      res.json(rules);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch IP rules" });
+    }
+  });
+
+  app.post("/api/admin/ip-rules", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { type, startIp, endIp, description } = req.body;
+      if (!type || !startIp || !endIp) {
+        return res.status(400).json({ error: "Type, start IP, and end IP are required" });
+      }
+      if (type !== "block" && type !== "whitelist") {
+        return res.status(400).json({ error: "Type must be 'block' or 'whitelist'" });
+      }
+      const ipRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+      if (!ipRegex.test(startIp) || !ipRegex.test(endIp)) {
+        return res.status(400).json({ error: "Invalid IP address format" });
+      }
+      const rule = await storage.addIpRule(type, startIp, endIp, description);
+      res.json(rule);
+    } catch {
+      res.status(500).json({ error: "Failed to add IP rule" });
+    }
+  });
+
+  app.delete("/api/admin/ip-rules/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteIpRule(parseInt(req.params.id));
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ error: "Failed to delete IP rule" });
     }
   });
 

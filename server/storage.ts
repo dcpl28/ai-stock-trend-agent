@@ -1,4 +1,4 @@
-import { type User, type InsertUser, users, analysisLogs, type AnalysisLog, appSettings, blockedIps, type BlockedIp } from "@shared/schema";
+import { type User, type InsertUser, users, analysisLogs, type AnalysisLog, appSettings, blockedIps, type BlockedIp, ipRules, type IpRule } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, gte } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -26,6 +26,10 @@ export interface IStorage {
   isIpBlocked(ip: string): Promise<boolean>;
   getBlockedIps(): Promise<BlockedIp[]>;
   unblockIp(id: number): Promise<void>;
+  getIpRules(): Promise<IpRule[]>;
+  addIpRule(type: string, startIp: string, endIp: string, description?: string): Promise<IpRule>;
+  deleteIpRule(id: number): Promise<void>;
+  isIpAllowed(ip: string): Promise<{ allowed: boolean; reason?: string }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -153,6 +157,65 @@ export class DatabaseStorage implements IStorage {
   async unblockIp(id: number): Promise<void> {
     await db.delete(blockedIps).where(eq(blockedIps.id, id));
   }
+
+  async getIpRules(): Promise<IpRule[]> {
+    return db.select().from(ipRules).orderBy(desc(ipRules.createdAt));
+  }
+
+  async addIpRule(type: string, startIp: string, endIp: string, description?: string): Promise<IpRule> {
+    const [rule] = await db.insert(ipRules).values({ type, startIp, endIp, description: description || null }).returning();
+    return rule;
+  }
+
+  async deleteIpRule(id: number): Promise<void> {
+    await db.delete(ipRules).where(eq(ipRules.id, id));
+  }
+
+  async isIpAllowed(ip: string): Promise<{ allowed: boolean; reason?: string }> {
+    const rules = await db.select().from(ipRules);
+    if (rules.length === 0) return { allowed: true };
+
+    const whitelistRules = rules.filter(r => r.type === "whitelist");
+    const blockRules = rules.filter(r => r.type === "block");
+
+    const ipNum = ipToNumber(ip);
+    if (ipNum === null) {
+      if (whitelistRules.length > 0) {
+        return { allowed: false, reason: "Your IP address is not in the allowed list. Only authorized IP addresses can access this system. Please contact the admin." };
+      }
+      return { allowed: true };
+    }
+
+    const blocked = blockRules.some(r => {
+      const start = ipToNumber(r.startIp);
+      const end = ipToNumber(r.endIp);
+      return start !== null && end !== null && ipNum >= start && ipNum <= end;
+    });
+    if (blocked) {
+      return { allowed: false, reason: "Your IP address is not allowed to access this system. Please contact the admin." };
+    }
+
+    if (whitelistRules.length > 0) {
+      const whitelisted = whitelistRules.some(r => {
+        const start = ipToNumber(r.startIp);
+        const end = ipToNumber(r.endIp);
+        return start !== null && end !== null && ipNum >= start && ipNum <= end;
+      });
+      if (!whitelisted) {
+        return { allowed: false, reason: "Your IP address is not in the allowed list. Only authorized IP addresses can access this system. Please contact the admin." };
+      }
+    }
+
+    return { allowed: true };
+  }
+}
+
+function ipToNumber(ip: string): number | null {
+  const parts = ip.split(".");
+  if (parts.length !== 4) return null;
+  const nums = parts.map(p => parseInt(p, 10));
+  if (nums.some(n => isNaN(n) || n < 0 || n > 255)) return null;
+  return ((nums[0] << 24) | (nums[1] << 16) | (nums[2] << 8) | nums[3]) >>> 0;
 }
 
 export const storage = new DatabaseStorage();
