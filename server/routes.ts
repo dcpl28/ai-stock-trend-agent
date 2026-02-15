@@ -306,6 +306,13 @@ export async function registerRoutes(
 
   app.post("/api/auth/login", async (req, res) => {
     try {
+      const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.ip || "unknown";
+
+      const ipBlocked = await storage.isIpBlocked(clientIp);
+      if (ipBlocked) {
+        return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
+      }
+
       const { email, password } = req.body;
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required" });
@@ -313,17 +320,25 @@ export async function registerRoutes(
 
       const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
-        return res.status(401).json({ error: "Invalid email or password" });
+        const result = await storage.recordFailedLogin(clientIp);
+        if (result.blocked) {
+          return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
+        }
+        return res.status(401).json({ error: `Invalid email or password. ${3 - result.attempts} attempt(s) remaining before your IP is blocked.` });
       }
       if (user.disabled) {
         return res.status(403).json({ error: "Your account has been disabled. Please contact admin." });
       }
       const valid = await storage.verifyPassword(user, password);
       if (!valid) {
-        return res.status(401).json({ error: "Invalid email or password" });
+        const result = await storage.recordFailedLogin(clientIp);
+        if (result.blocked) {
+          return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
+        }
+        return res.status(401).json({ error: `Invalid email or password. ${3 - result.attempts} attempt(s) remaining before your IP is blocked.` });
       }
 
-      const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.ip || "unknown";
+      await storage.resetFailedLogins(clientIp);
       await storage.updateLoginInfo(user.id, clientIp);
 
       req.session.userId = user.id;
@@ -339,11 +354,23 @@ export async function registerRoutes(
 
   app.post("/api/auth/admin-login", async (req, res) => {
     try {
-      const { password } = req.body;
-      if (!password || password !== ADMIN_PASSWORD) {
-        return res.status(401).json({ error: "Invalid admin password" });
+      const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.ip || "unknown";
+
+      const ipBlocked = await storage.isIpBlocked(clientIp);
+      if (ipBlocked) {
+        return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
       }
 
+      const { password } = req.body;
+      if (!password || password !== ADMIN_PASSWORD) {
+        const result = await storage.recordFailedLogin(clientIp);
+        if (result.blocked) {
+          return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
+        }
+        return res.status(401).json({ error: `Invalid admin password. ${3 - result.attempts} attempt(s) remaining before your IP is blocked.` });
+      }
+
+      await storage.resetFailedLogins(clientIp);
       req.session.userId = "admin";
       req.session.email = "admin";
       req.session.isAdmin = true;
@@ -637,6 +664,24 @@ export async function registerRoutes(
       res.json({ ok: true, rateLimitPerHour });
     } catch {
       res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  app.get("/api/admin/blocked-ips", requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      const ips = await storage.getBlockedIps();
+      res.json(ips);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch blocked IPs" });
+    }
+  });
+
+  app.delete("/api/admin/blocked-ips/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      await storage.unblockIp(parseInt(req.params.id));
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ error: "Failed to unblock IP" });
     }
   });
 

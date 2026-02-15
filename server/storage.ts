@@ -1,4 +1,4 @@
-import { type User, type InsertUser, users, analysisLogs, type AnalysisLog, appSettings } from "@shared/schema";
+import { type User, type InsertUser, users, analysisLogs, type AnalysisLog, appSettings, blockedIps, type BlockedIp } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, gte } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -21,6 +21,11 @@ export interface IStorage {
   getUserRequestCountLastHour(email: string): Promise<number>;
   getSetting(key: string): Promise<string | null>;
   setSetting(key: string, value: string): Promise<void>;
+  recordFailedLogin(ip: string): Promise<{ blocked: boolean; attempts: number }>;
+  resetFailedLogins(ip: string): Promise<void>;
+  isIpBlocked(ip: string): Promise<boolean>;
+  getBlockedIps(): Promise<BlockedIp[]>;
+  unblockIp(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -104,6 +109,49 @@ export class DatabaseStorage implements IStorage {
   async setSetting(key: string, value: string): Promise<void> {
     await db.insert(appSettings).values({ key, value })
       .onConflictDoUpdate({ target: appSettings.key, set: { value } });
+  }
+
+  async recordFailedLogin(ip: string): Promise<{ blocked: boolean; attempts: number }> {
+    const [existing] = await db.select().from(blockedIps).where(eq(blockedIps.ip, ip));
+    if (existing && existing.blocked) {
+      return { blocked: true, attempts: existing.failedAttempts };
+    }
+    const newAttempts = (existing?.failedAttempts || 0) + 1;
+    const shouldBlock = newAttempts >= 3;
+    if (existing) {
+      await db.update(blockedIps).set({
+        failedAttempts: newAttempts,
+        lastAttemptAt: new Date(),
+        blocked: shouldBlock,
+        blockedAt: shouldBlock ? new Date() : null,
+      }).where(eq(blockedIps.ip, ip));
+    } else {
+      await db.insert(blockedIps).values({
+        ip,
+        failedAttempts: newAttempts,
+        blocked: shouldBlock,
+        lastAttemptAt: new Date(),
+        blockedAt: shouldBlock ? new Date() : null,
+      });
+    }
+    return { blocked: shouldBlock, attempts: newAttempts };
+  }
+
+  async resetFailedLogins(ip: string): Promise<void> {
+    await db.delete(blockedIps).where(eq(blockedIps.ip, ip));
+  }
+
+  async isIpBlocked(ip: string): Promise<boolean> {
+    const [row] = await db.select().from(blockedIps).where(eq(blockedIps.ip, ip));
+    return row?.blocked || false;
+  }
+
+  async getBlockedIps(): Promise<BlockedIp[]> {
+    return db.select().from(blockedIps).orderBy(desc(blockedIps.lastAttemptAt));
+  }
+
+  async unblockIp(id: number): Promise<void> {
+    await db.delete(blockedIps).where(eq(blockedIps.id, id));
   }
 }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp } from "lucide-react";
+import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface UserEntry {
@@ -20,6 +20,15 @@ interface AnalysisLogEntry {
   symbol: string;
   ip: string | null;
   createdAt: string;
+}
+
+interface BlockedIpEntry {
+  id: number;
+  ip: string;
+  failedAttempts: number;
+  blocked: boolean;
+  lastAttemptAt: string;
+  blockedAt: string | null;
 }
 
 export default function AdminConfig() {
@@ -46,6 +55,8 @@ export default function AdminConfig() {
   const [rateLimit, setRateLimit] = useState(20);
   const [rateLimitInput, setRateLimitInput] = useState("20");
   const [savingRate, setSavingRate] = useState(false);
+  const [blockedIps, setBlockedIps] = useState<BlockedIpEntry[]>([]);
+  const [blockedIpsLoading, setBlockedIpsLoading] = useState(true);
 
   const totalUserPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
   const paginatedUsers = users.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
@@ -95,6 +106,7 @@ export default function AdminConfig() {
     fetchUsers();
     fetchAnalysisLogs();
     fetchSettings();
+    fetchBlockedIps();
   }, [isAdmin]);
 
   const fetchUsers = async () => {
@@ -117,6 +129,26 @@ export default function AdminConfig() {
     } catch {} finally {
       setLogsLoading(false);
     }
+  };
+
+  const fetchBlockedIps = async () => {
+    try {
+      const res = await fetch("/api/admin/blocked-ips");
+      if (res.ok) {
+        setBlockedIps(await res.json());
+      }
+    } catch {} finally {
+      setBlockedIpsLoading(false);
+    }
+  };
+
+  const unblockIp = async (id: number) => {
+    try {
+      const res = await fetch(`/api/admin/blocked-ips/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setBlockedIps(prev => prev.filter(ip => ip.id !== id));
+      }
+    } catch {}
   };
 
   const fetchSettings = async () => {
@@ -691,6 +723,83 @@ export default function AdminConfig() {
                 )}
               </div>
             </>
+          )}
+        </div>
+
+        <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+            <h2 className="text-[10px] text-primary uppercase tracking-widest font-medium flex items-center gap-2">
+              <Shield className="w-3.5 h-3.5" />
+              Blocked IP Addresses
+            </h2>
+            <span className="text-[10px] text-muted-foreground/50 uppercase tracking-widest">
+              {blockedIps.filter(ip => ip.blocked).length} blocked
+            </span>
+          </div>
+
+          {blockedIpsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            </div>
+          ) : blockedIps.length === 0 ? (
+            <div className="px-6 py-8 text-center">
+              <CheckCircle className="w-6 h-6 text-green-500/60 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground/60 font-light">No blocked or flagged IP addresses</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" data-testid="table-blocked-ips">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">IP Address</th>
+                    <th className="text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Failed Attempts</th>
+                    <th className="text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Status</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Last Attempt</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Blocked At</th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {blockedIps.map(entry => (
+                    <tr key={entry.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3 px-6 font-mono text-xs text-foreground/90" data-testid={`text-blocked-ip-${entry.id}`}>{entry.ip}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="text-xs text-red-400/80 font-medium">{entry.failedAttempts}</span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {entry.blocked ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
+                            <Ban className="w-2.5 h-2.5" /> Blocked
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-full">
+                            <AlertTriangle className="w-2.5 h-2.5" /> Warning
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground/70">
+                        {new Date(entry.lastAttemptAt).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground/70">
+                        {entry.blockedAt ? new Date(entry.blockedAt).toLocaleString() : "—"}
+                      </td>
+                      <td className="py-3 px-6 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => unblockIp(entry.id)}
+                          className="text-[10px] uppercase tracking-widest text-green-400 hover:text-green-300 hover:bg-green-500/10 h-7 px-3 cursor-pointer"
+                          data-testid={`button-unblock-ip-${entry.id}`}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Unblock
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
