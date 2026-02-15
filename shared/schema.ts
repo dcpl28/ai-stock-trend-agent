@@ -38,6 +38,19 @@ export const appSettings = pgTable("app_settings", {
 
 export type AppSetting = typeof appSettings.$inferSelect;
 
+export const feedback = pgTable("feedback", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userEmail: text("user_email").notNull(),
+  category: text("category").notNull(),
+  message: text("message").notNull(),
+  rating: integer("rating"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({ id: true, createdAt: true });
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type Feedback = typeof feedback.$inferSelect;
+
 export const conversations = pgTable("conversations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   title: text("title").notNull(),
