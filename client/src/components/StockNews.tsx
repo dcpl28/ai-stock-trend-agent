@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Newspaper, ExternalLink, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface NewsArticle {
   title: string;
@@ -19,6 +20,7 @@ const NEWS_PER_PAGE = 5;
 
 export function StockNews({ symbol }: StockNewsProps) {
   const [page, setPage] = useState(1);
+  const { t, lang } = useI18n();
 
   const { data: news, isLoading } = useQuery<NewsArticle[]>({
     queryKey: ["/api/news", symbol],
@@ -38,10 +40,11 @@ export function StockNews({ symbol }: StockNewsProps) {
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffHours < 1) return "Just now";
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (diffHours < 1) return t("justNow");
+    if (diffHours < 24) return t("hoursAgo", { n: String(diffHours) });
+    if (diffDays < 7) return t("daysAgo", { n: String(diffDays) });
+    const localeMap: Record<string, string> = { en: "en-US", zh: "zh-CN", ms: "ms-MY" };
+    return date.toLocaleDateString(localeMap[lang] || "en-US", { month: "short", day: "numeric" });
   };
 
   if (isLoading) {
@@ -49,7 +52,7 @@ export function StockNews({ symbol }: StockNewsProps) {
       <Card className="glass-panel border-white/5">
         <CardContent className="py-8 flex flex-col items-center justify-center text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin text-primary/40 mb-2" />
-          <span className="text-xs font-light">Loading news...</span>
+          <span className="text-xs font-light">{t("loadingNews")}</span>
         </CardContent>
       </Card>
     );
@@ -66,7 +69,7 @@ export function StockNews({ symbol }: StockNewsProps) {
         <CardTitle className="flex items-center justify-between text-[10px] text-primary uppercase tracking-widest font-medium">
           <span className="flex items-center gap-2">
             <Newspaper className="w-4 h-4 text-primary" />
-            Latest News
+            {t("latestNews")}
           </span>
           {totalPages > 1 && (
             <div className="flex items-center gap-1">

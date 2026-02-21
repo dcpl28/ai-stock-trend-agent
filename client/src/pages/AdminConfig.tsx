@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
@@ -42,6 +43,7 @@ interface IpRuleEntry {
 
 export default function AdminConfig() {
   const { isAdmin, logout } = useAuth();
+  const { t } = useI18n();
   const [, navigate] = useLocation();
   const [users, setUsers] = useState<UserEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -327,33 +329,36 @@ export default function AdminConfig() {
               data-testid="button-back-dashboard"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Terminal
+              {t("backToTerminal")}
             </button>
-            <button
-              onClick={logout}
-              className="text-sm text-muted-foreground hover:text-red-400 transition-colors cursor-pointer"
-              data-testid="button-admin-logout"
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher compact />
+              <button
+                onClick={logout}
+                className="text-sm text-muted-foreground hover:text-red-400 transition-colors cursor-pointer"
+                data-testid="button-admin-logout"
+              >
+                {t("logout")}
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2 text-primary mb-2">
             <Crown className="w-4 h-4" strokeWidth={1.5} />
-            <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">Admin Panel</span>
+            <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">{t("adminPanel")}</span>
           </div>
           <h1 className="text-3xl font-serif font-medium tracking-tight text-foreground flex items-center gap-3" data-testid="text-admin-title">
             <Shield className="w-7 h-7 text-primary" />
-            User Management
+            {t("userManagement")}
           </h1>
           <p className="text-muted-foreground font-light tracking-wide text-sm mt-2">
-            Manage users, monitor activity, and control access.
+            {t("adminSubtitle")}
           </p>
         </header>
 
         <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
           <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
             <UserPlus className="w-3.5 h-3.5 text-primary" />
-            Add New User
+            {t("addNewUser")}
           </h2>
           {error && (
             <div className="text-red-400 text-sm mb-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3" data-testid="text-admin-error">
@@ -363,7 +368,7 @@ export default function AdminConfig() {
           <form onSubmit={addUser} className="flex flex-col sm:flex-row gap-3">
             <Input
               type="email"
-              placeholder="Email address"
+              placeholder={t("emailAddress")}
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               className="flex-1 h-10 bg-background/30 border-white/[0.06] focus-visible:border-primary/50 text-foreground"
@@ -372,7 +377,7 @@ export default function AdminConfig() {
             />
             <Input
               type="password"
-              placeholder="Password"
+              placeholder={t("password")}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="flex-1 h-10 bg-background/30 border-white/[0.06] focus-visible:border-primary/50 text-foreground"
@@ -385,7 +390,7 @@ export default function AdminConfig() {
               className="h-10 px-6 bg-primary text-primary-foreground font-medium tracking-widest hover:bg-primary/90 cursor-pointer"
               data-testid="button-add-user"
             >
-              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : "ADD"}
+              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : t("add")}
             </Button>
           </form>
         </div>
@@ -393,16 +398,16 @@ export default function AdminConfig() {
         <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
           <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
             <Users className="w-3.5 h-3.5 text-primary" />
-            Allowed Users ({users.length})
+            {t("allowedUsers")} ({users.length})
           </h2>
           {loading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              Loading users...
+              {t("loadingUsers")}
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground font-light" data-testid="text-no-users">
-              No users added yet. Add a user above to get started.
+              {t("noUsersYet")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -441,7 +446,7 @@ export default function AdminConfig() {
                           </span>
                           {user.disabled && (
                             <span className="text-[9px] uppercase tracking-wider bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full font-medium">
-                              Disabled
+                              {t("disabled")}
                             </span>
                           )}
                         </div>
@@ -450,14 +455,14 @@ export default function AdminConfig() {
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground/60">
                         <span className="flex items-center gap-1" data-testid={`text-user-ip-${user.id}`}>
                           <Globe className="w-3 h-3" />
-                          {user.lastIp || "No login yet"}
+                          {user.lastIp || t("noLoginYet")}
                         </span>
                         <span className="flex items-center gap-1" data-testid={`text-user-requests-${user.id}`}>
                           <Activity className="w-3 h-3" />
-                          {user.requestCount} requests
+                          {user.requestCount} {t("requests")}
                         </span>
                         <span data-testid={`text-user-lastlogin-${user.id}`}>
-                          Last login: {formatDate(user.lastLoginAt)}
+                          {t("lastLogin")} {formatDate(user.lastLoginAt)}
                         </span>
                       </div>
                     </div>
@@ -560,11 +565,11 @@ export default function AdminConfig() {
         <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
           <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
             <Shield className="w-3.5 h-3.5 text-primary" />
-            Rate Limit Settings
+            {t("rateLimitSettings")}
           </h2>
           <div className="flex items-center gap-3">
             <label className="text-xs text-muted-foreground whitespace-nowrap">
-              Max AI requests per user per hour:
+              {t("maxAiRequests")}
             </label>
             <Input
               type="number"
@@ -581,7 +586,7 @@ export default function AdminConfig() {
               className="h-9 px-4 bg-primary text-primary-foreground text-xs font-medium tracking-widest hover:bg-primary/90 cursor-pointer"
               data-testid="button-save-rate-limit"
             >
-              {savingRate ? <Loader2 className="w-3 h-3 animate-spin" /> : "SAVE"}
+              {savingRate ? <Loader2 className="w-3 h-3 animate-spin" /> : t("save")}
             </Button>
             <span className="text-[10px] text-muted-foreground/50">
               Current: {rateLimit}/hr
@@ -593,7 +598,7 @@ export default function AdminConfig() {
           <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
             <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
               <BarChart3 className="w-3.5 h-3.5 text-primary" />
-              Most Searched Stocks
+              {t("topStocksAnalyzed")}
             </h2>
             <div className="space-y-2">
               {stockFrequency.map(([symbol, count], i) => {
@@ -624,26 +629,26 @@ export default function AdminConfig() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
               <FileText className="w-3.5 h-3.5 text-primary" />
-              AI Analysis Request Log ({analysisLogs.length})
+              {t("analysisLogs")} ({analysisLogs.length})
             </h2>
             <button
               onClick={() => { setLogsLoading(true); fetchAnalysisLogs(); }}
               className="text-[10px] text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest cursor-pointer"
               data-testid="button-refresh-logs"
             >
-              Refresh
+              {t("refresh")}
             </button>
           </div>
 
           <div className="flex flex-wrap items-end gap-3 mb-4">
             <div className="flex-1 min-w-[160px]">
-              <label className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-1 block">Filter User</label>
+              <label className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-1 block">{t("filterByUser")}</label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/40" />
                 <Input
                   value={logUserFilter}
                   onChange={(e) => setLogUserFilter(e.target.value)}
-                  placeholder="Search by email..."
+                  placeholder={t("filterByUser")}
                   className="h-8 pl-7 text-xs bg-background/50 border-white/[0.08] focus:border-primary/50"
                   data-testid="input-log-user-filter"
                 />
@@ -651,7 +656,7 @@ export default function AdminConfig() {
             </div>
             <div className="min-w-[130px]">
               <label className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-1 flex items-center gap-1 whitespace-nowrap">
-                <Calendar className="w-3 h-3" /> From
+                <Calendar className="w-3 h-3" /> {t("from")}
               </label>
               <Input
                 type="date"
@@ -663,7 +668,7 @@ export default function AdminConfig() {
             </div>
             <div className="min-w-[130px]">
               <label className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-1 flex items-center gap-1 whitespace-nowrap">
-                <Calendar className="w-3 h-3" /> To
+                <Calendar className="w-3 h-3" /> {t("to")}
               </label>
               <Input
                 type="date"
@@ -679,7 +684,7 @@ export default function AdminConfig() {
                 className="h-8 px-3 text-[10px] text-muted-foreground hover:text-primary border border-white/[0.08] rounded-md transition-colors uppercase tracking-widest cursor-pointer"
                 data-testid="button-clear-log-filters"
               >
-                Clear
+                {t("clear")}
               </button>
             )}
           </div>
@@ -687,24 +692,24 @@ export default function AdminConfig() {
           {logsLoading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              Loading logs...
+              {t("loadingLogs")}
             </div>
           ) : analysisLogs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground font-light" data-testid="text-no-logs">
-              No analysis requests yet.
+              {t("noLogsFound")}
             </div>
           ) : (
             <>
               <div className="space-y-1 max-h-[500px] overflow-y-auto">
                 <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 text-[9px] uppercase tracking-widest text-muted-foreground/50 pb-2 border-b border-white/5 sticky top-0 bg-card/95 backdrop-blur-sm px-1">
-                  <span>User</span>
-                  <span>Stock</span>
-                  <span>IP</span>
-                  <span>Time</span>
+                  <span>{t("user")}</span>
+                  <span>{t("symbol")}</span>
+                  <span>{t("ip")}</span>
+                  <span>{t("date")}</span>
                 </div>
                 {filteredLogs.length === 0 ? (
                   <div className="text-center py-6 text-muted-foreground/50 text-xs font-light">
-                    No logs match your filters.
+                    {t("noLogsMatchFilters")}
                   </div>
                 ) : (
                   paginatedLogs.map((log) => (
@@ -732,11 +737,11 @@ export default function AdminConfig() {
               <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest" data-testid="text-log-total-count">
-                    Total: {filteredLogs.length} {filteredLogs.length !== analysisLogs.length ? `of ${analysisLogs.length}` : ""} requests
+                    {t("total")}: {filteredLogs.length} {filteredLogs.length !== analysisLogs.length ? `${t("of")} ${analysisLogs.length}` : ""}
                   </span>
                   {logUserFilter && (
                     <span className="text-[10px] text-primary/70 uppercase tracking-widest">
-                      Filtered: "{logUserFilter}"
+                      {t("filtered")}: "{logUserFilter}"
                     </span>
                   )}
                 </div>
@@ -759,7 +764,7 @@ export default function AdminConfig() {
                       ‹
                     </button>
                     <span className="text-[10px] text-muted-foreground/70 px-3 uppercase tracking-widest">
-                      Page {logPage} of {totalLogPages}
+                      {t("page")} {logPage} {t("of")} {totalLogPages}
                     </span>
                     <button
                       onClick={() => setLogPage(p => Math.min(totalLogPages, p + 1))}
@@ -788,10 +793,10 @@ export default function AdminConfig() {
           <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
             <h2 className="text-[10px] text-primary uppercase tracking-widest font-medium flex items-center gap-2">
               <Shield className="w-3.5 h-3.5" />
-              Blocked IP Addresses
+              {t("blockedIps")}
             </h2>
             <span className="text-[10px] text-muted-foreground/50 uppercase tracking-widest">
-              {blockedIps.filter(ip => ip.blocked).length} blocked
+              {blockedIps.filter(ip => ip.blocked).length} {t("blocked")}
             </span>
           </div>
 
@@ -802,19 +807,19 @@ export default function AdminConfig() {
           ) : blockedIps.length === 0 ? (
             <div className="px-6 py-8 text-center">
               <CheckCircle className="w-6 h-6 text-green-500/60 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground/60 font-light">No blocked or flagged IP addresses</p>
+              <p className="text-sm text-muted-foreground/60 font-light">{t("noBlockedOrFlagged")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" data-testid="table-blocked-ips">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">IP Address</th>
-                    <th className="text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Failed Attempts</th>
-                    <th className="text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Status</th>
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Last Attempt</th>
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Blocked At</th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Action</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">{t("ip")}</th>
+                    <th className="text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">{t("failedAttempts")}</th>
+                    <th className="text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">{t("status")}</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">{t("lastAttempt")}</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">{t("blockedAt")}</th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">{t("action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -827,11 +832,11 @@ export default function AdminConfig() {
                       <td className="py-3 px-4 text-center">
                         {entry.blocked ? (
                           <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
-                            <Ban className="w-2.5 h-2.5" /> Blocked
+                            <Ban className="w-2.5 h-2.5" /> {t("blocked")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-full">
-                            <AlertTriangle className="w-2.5 h-2.5" /> Warning
+                            <AlertTriangle className="w-2.5 h-2.5" /> {t("warning")}
                           </span>
                         )}
                       </td>
@@ -850,7 +855,7 @@ export default function AdminConfig() {
                           data-testid={`button-unblock-ip-${entry.id}`}
                         >
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          Unblock
+                          {t("unblock")}
                         </Button>
                       </td>
                     </tr>
@@ -865,10 +870,10 @@ export default function AdminConfig() {
           <div className="px-6 py-4 border-b border-white/5">
             <h2 className="text-[10px] text-primary uppercase tracking-widest font-medium flex items-center gap-2">
               <Globe className="w-3.5 h-3.5" />
-              IP Access Rules
+              {t("ipAccessRules")}
             </h2>
             <p className="text-[10px] text-muted-foreground/50 mt-1 font-light">
-              Block IP ranges or whitelist specific IPs. If any whitelist rules exist, only whitelisted IPs are allowed.
+              {t("ipRuleNote")}
             </p>
           </div>
 
@@ -880,11 +885,11 @@ export default function AdminConfig() {
                 className="h-9 bg-background/50 border border-white/[0.08] rounded-lg px-3 text-xs text-foreground/90 focus:outline-none focus:border-primary/40"
                 data-testid="select-rule-type"
               >
-                <option value="whitelist">Whitelist</option>
-                <option value="block">Block</option>
+                <option value="whitelist">{t("whitelistRule")}</option>
+                <option value="block">{t("blockRule")}</option>
               </select>
               <Input
-                placeholder="Start IP (e.g. 1.0.0.0)"
+                placeholder={`${t("startIp")} (e.g. 1.0.0.0)`}
                 value={newRuleStartIp}
                 onChange={(e) => setNewRuleStartIp(e.target.value)}
                 className="h-9 w-40 bg-background/50 border-white/[0.08] text-xs placeholder:text-muted-foreground/30"
@@ -892,14 +897,14 @@ export default function AdminConfig() {
               />
               <span className="text-xs text-muted-foreground/40">to</span>
               <Input
-                placeholder="End IP (e.g. 1.255.255.255)"
+                placeholder={`${t("endIp")} (e.g. 1.255.255.255)`}
                 value={newRuleEndIp}
                 onChange={(e) => setNewRuleEndIp(e.target.value)}
                 className="h-9 w-44 bg-background/50 border-white/[0.08] text-xs placeholder:text-muted-foreground/30"
                 data-testid="input-end-ip"
               />
               <Input
-                placeholder="Description (optional)"
+                placeholder={t("description")}
                 value={newRuleDesc}
                 onChange={(e) => setNewRuleDesc(e.target.value)}
                 className="h-9 w-48 bg-background/50 border-white/[0.08] text-xs placeholder:text-muted-foreground/30"
@@ -911,7 +916,7 @@ export default function AdminConfig() {
                 className="h-9 px-4 text-[10px] uppercase tracking-widest cursor-pointer"
                 data-testid="button-add-ip-rule"
               >
-                {addingRule ? <Loader2 className="w-3 h-3 animate-spin" /> : "Add Rule"}
+                {addingRule ? <Loader2 className="w-3 h-3 animate-spin" /> : t("addRuleBtn")}
               </Button>
             </div>
           </div>
@@ -923,18 +928,18 @@ export default function AdminConfig() {
           ) : ipRules.length === 0 ? (
             <div className="px-6 py-8 text-center">
               <Globe className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground/60 font-light">No IP rules configured. All IPs are allowed by default.</p>
+              <p className="text-sm text-muted-foreground/60 font-light">{t("noIpRules")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" data-testid="table-ip-rules">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Type</th>
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">IP Range</th>
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Description</th>
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">Created</th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Action</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">{t("type")}</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">{t("range")}</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">{t("description")}</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4">{t("date")}</th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">{t("action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -943,11 +948,11 @@ export default function AdminConfig() {
                       <td className="py-3 px-6">
                         {rule.type === "whitelist" ? (
                           <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
-                            <CheckCircle className="w-2.5 h-2.5" /> Whitelist
+                            <CheckCircle className="w-2.5 h-2.5" /> {t("whitelistRule")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
-                            <Ban className="w-2.5 h-2.5" /> Block
+                            <Ban className="w-2.5 h-2.5" /> {t("blockRule")}
                           </span>
                         )}
                       </td>
@@ -969,7 +974,7 @@ export default function AdminConfig() {
                           data-testid={`button-delete-rule-${rule.id}`}
                         >
                           <Trash2 className="w-3 h-3 mr-1" />
-                          Remove
+                          {t("delete")}
                         </Button>
                       </td>
                     </tr>

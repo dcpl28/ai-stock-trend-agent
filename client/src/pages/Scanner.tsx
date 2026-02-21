@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Crown, Scan, TrendingUp, Trophy, Loader2, ArrowLeft, ArrowUpRight, ArrowDownRight, Filter, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { useLocation } from "wouter";
 
 interface ScanResult {
@@ -18,22 +19,9 @@ interface ScanResult {
   reason: string;
 }
 
-const BREAKOUT_CRITERIA = [
-  { id: "above_5_candles", label: "Above last 5 candle highs", group: "breakout" },
-  { id: "above_10day", label: "Above 10-day high", group: "breakout" },
-  { id: "above_3day", label: "Above 3-day high", group: "breakout" },
-] as const;
-
-const INDICATOR_CRITERIA = [
-  { id: "above_ema5", label: "Above EMA 5", group: "indicator" },
-  { id: "above_ema20", label: "Above EMA 20", group: "indicator" },
-  { id: "above_sma200", label: "Above SMA 200", group: "indicator" },
-  { id: "ema20_above_sma200", label: "EMA 20 above SMA 200", group: "indicator" },
-  { id: "ema20_cross_sma200", label: "EMA 20 cross SMA 200 (Golden Cross)", group: "indicator" },
-] as const;
-
 export default function Scanner() {
   const { logout } = useAuth();
+  const { t } = useI18n();
   const [, navigate] = useLocation();
   const [market, setMarket] = useState<"US" | "MY">("US");
   const [scanType, setScanType] = useState<"ath" | "breakout">("ath");
@@ -44,6 +32,20 @@ export default function Scanner() {
   type SortKey = "symbol" | "name" | "price" | "changePercent" | "volume" | "marketCap";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const BREAKOUT_CRITERIA = [
+    { id: "above_5_candles", label: t("above5Candles"), group: "breakout" },
+    { id: "above_10day", label: t("above10Day"), group: "breakout" },
+    { id: "above_3day", label: t("above3Day"), group: "breakout" },
+  ] as const;
+
+  const INDICATOR_CRITERIA = [
+    { id: "above_ema5", label: t("aboveEma5"), group: "indicator" },
+    { id: "above_ema20", label: t("aboveEma20"), group: "indicator" },
+    { id: "above_sma200", label: t("aboveSma200"), group: "indicator" },
+    { id: "ema20_above_sma200", label: t("ema20AboveSma200"), group: "indicator" },
+    { id: "ema20_cross_sma200", label: t("ema20CrossSma200"), group: "indicator" },
+  ] as const;
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -139,34 +141,37 @@ export default function Scanner() {
             data-testid="button-back-dashboard"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Terminal
+            {t("backToTerminal")}
           </button>
-          <button
-            onClick={logout}
-            className="text-sm text-muted-foreground hover:text-red-400 transition-colors cursor-pointer"
-            data-testid="button-scanner-logout"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher compact />
+            <button
+              onClick={logout}
+              className="text-sm text-muted-foreground hover:text-red-400 transition-colors cursor-pointer"
+              data-testid="button-scanner-logout"
+            >
+              {t("logout")}
+            </button>
+          </div>
         </div>
 
         <header className="border-b border-primary/20 pb-6">
           <div className="flex items-center gap-2 text-primary mb-2">
             <Crown className="w-4 h-4" strokeWidth={1.5} />
-            <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">Market Scanner</span>
+            <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">{t("marketScanner")}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight text-foreground" data-testid="text-scanner-title">
-            Stock <span className="text-primary italic">Scanner</span>
+            {t("stockScanner")} <span className="text-primary italic">{t("stockScannerHighlight")}</span>
           </h1>
           <p className="text-muted-foreground font-light tracking-wide text-sm mt-2">
-            Scan for breakout and all-time high stocks across US and Malaysian markets.
+            {t("scannerSubtitle")}
           </p>
         </header>
 
         <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40 space-y-5">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 block">Market</label>
+              <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 block">{t("market")}</label>
               <div className="flex gap-2">
                 <button
                   onClick={() => { setMarket("US"); setEnabled(false); }}
@@ -177,7 +182,7 @@ export default function Scanner() {
                   }`}
                   data-testid="button-market-us"
                 >
-                  US Market
+                  {t("usMarket")}
                 </button>
                 <button
                   onClick={() => { setMarket("MY"); setEnabled(false); }}
@@ -188,13 +193,13 @@ export default function Scanner() {
                   }`}
                   data-testid="button-market-my"
                 >
-                  Malaysia (KLSE)
+                  {t("malaysiaKlse")}
                 </button>
               </div>
             </div>
 
             <div className="flex-1">
-              <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 block">Scan Type</label>
+              <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 block">{t("scanType")}</label>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleScanTypeChange("ath")}
@@ -206,7 +211,7 @@ export default function Scanner() {
                   data-testid="button-type-ath"
                 >
                   <Trophy className="w-3.5 h-3.5" />
-                  All-Time High
+                  {t("allTimeHigh")}
                 </button>
                 <button
                   onClick={() => handleScanTypeChange("breakout")}
@@ -218,7 +223,7 @@ export default function Scanner() {
                   data-testid="button-type-breakout"
                 >
                   <TrendingUp className="w-3.5 h-3.5" />
-                  Breakout
+                  {t("breakout")}
                 </button>
               </div>
             </div>
@@ -227,12 +232,12 @@ export default function Scanner() {
           <div className="border-t border-white/5 pt-4">
             <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <Filter className="w-3 h-3 text-primary" />
-              Criteria Filters <span className="text-muted-foreground/40">(select one or more)</span>
+              {t("criteriaFilters")} <span className="text-muted-foreground/40">{t("selectOneOrMore")}</span>
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-[9px] text-muted-foreground/50 uppercase tracking-widest mb-2">Breakout Conditions</p>
+                <p className="text-[9px] text-muted-foreground/50 uppercase tracking-widest mb-2">{t("breakoutConditions")}</p>
                 <div className="space-y-1.5">
                   {BREAKOUT_CRITERIA.map(c => (
                     <label
@@ -260,7 +265,7 @@ export default function Scanner() {
               </div>
 
               <div>
-                <p className="text-[9px] text-muted-foreground/50 uppercase tracking-widest mb-2">Technical Indicators</p>
+                <p className="text-[9px] text-muted-foreground/50 uppercase tracking-widest mb-2">{t("technicalIndicators")}</p>
                 <div className="space-y-1.5">
                   {INDICATOR_CRITERIA.map(c => (
                     <label
@@ -296,12 +301,12 @@ export default function Scanner() {
               {isLoading || isFetching ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Scanning...
+                  {t("scanning")}
                 </>
               ) : (
                 <>
                   <Scan className="w-4 h-4 mr-2" />
-                  SCAN
+                  {t("scan")}
                 </>
               )}
             </Button>
@@ -311,22 +316,27 @@ export default function Scanner() {
         {(isLoading || isFetching) && (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="w-8 h-8 animate-spin text-primary/40 mb-4" />
-            <p className="text-sm font-light">Scanning {market === "US" ? "US" : "Malaysian"} market for {scanType === "ath" ? "all-time highs" : "breakouts"}...</p>
-            <p className="text-xs text-muted-foreground/50 mt-1">This may take 15-30 seconds</p>
+            <p className="text-sm font-light">
+              {t("scanningMarket", {
+                market: market === "US" ? t("scanningUS") : t("scanningMY"),
+                type: scanType === "ath" ? t("scanningATH") : t("scanningBreakout"),
+              })}
+            </p>
+            <p className="text-xs text-muted-foreground/50 mt-1">{t("scanTimeTip")}</p>
           </div>
         )}
 
         {!isLoading && !isFetching && results && results.length === 0 && (
           <div className="text-center py-16 text-muted-foreground" data-testid="text-no-results">
-            <p className="text-sm font-light">No stocks matched the selected criteria right now.</p>
-            <p className="text-xs text-muted-foreground/50 mt-1">Try a different market, scan type, or adjust your filters.</p>
+            <p className="text-sm font-light">{t("noStocksMatched")}</p>
+            <p className="text-xs text-muted-foreground/50 mt-1">{t("tryDifferentFilter")}</p>
           </div>
         )}
 
         {!isLoading && !isFetching && !enabled && (
           <div className="text-center py-16 text-muted-foreground" data-testid="text-scan-prompt">
             <Scan className="w-10 h-10 text-primary/20 mx-auto mb-4" />
-            <p className="text-sm font-light">Select your market, scan type, and criteria, then click SCAN to find stocks.</p>
+            <p className="text-sm font-light">{t("scanPrompt")}</p>
           </div>
         )}
 
@@ -342,7 +352,7 @@ export default function Scanner() {
             <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
               <h2 className="text-[10px] text-primary uppercase tracking-widest font-medium flex items-center gap-2">
                 {scanType === "ath" ? <Trophy className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
-                {results.length} {scanType === "ath" ? "All-Time High" : "Breakout"} Stocks Found
+                {results?.length || 0} {scanType === "ath" ? t("allTimeHigh") : t("breakout")} {t("stocksFound")}
               </h2>
               <div className="flex items-center gap-3">
                 {totalPages > 1 && (
@@ -373,7 +383,7 @@ export default function Scanner() {
                   </div>
                 )}
                 <span className="text-[10px] text-muted-foreground/50">
-                  {market === "US" ? "US Market" : "KLSE"} · Data may be delayed up to 15 min
+                  {market === "US" ? t("usMarket") : "KLSE"} · {t("dataDelayed")}
                 </span>
               </div>
             </div>
@@ -382,13 +392,13 @@ export default function Scanner() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("symbol")} data-testid="sort-symbol">Symbol<SortIcon col="symbol" /></th>
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("name")} data-testid="sort-name">Name<SortIcon col="name" /></th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("price")} data-testid="sort-price">Price<SortIcon col="price" /></th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("changePercent")} data-testid="sort-change">Change<SortIcon col="changePercent" /></th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("volume")} data-testid="sort-volume">Volume<SortIcon col="volume" /></th>
-                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 hidden md:table-cell cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("marketCap")} data-testid="sort-mktcap">Mkt Cap<SortIcon col="marketCap" /></th>
-                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">Signal</th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("symbol")} data-testid="sort-symbol">{t("symbol")}<SortIcon col="symbol" /></th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("name")} data-testid="sort-name">{t("name")}<SortIcon col="name" /></th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("price")} data-testid="sort-price">{t("price")}<SortIcon col="price" /></th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("changePercent")} data-testid="sort-change">{t("change")}<SortIcon col="changePercent" /></th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("volume")} data-testid="sort-volume">{t("volume")}<SortIcon col="volume" /></th>
+                    <th className="text-right text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-4 hidden md:table-cell cursor-pointer hover:text-primary/80 select-none" onClick={() => handleSort("marketCap")} data-testid="sort-mktcap">{t("mktCap")}<SortIcon col="marketCap" /></th>
+                    <th className="text-left text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium py-3 px-6">{t("signal")}</th>
                   </tr>
                 </thead>
                 <tbody>

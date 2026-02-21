@@ -11,6 +11,7 @@ import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Set
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { useLocation } from "wouter";
 
 interface CandleData {
@@ -85,6 +86,7 @@ export default function Dashboard() {
   const [searchInput, setSearchInput] = useState("");
   const [analysisRequested, setAnalysisRequested] = useState(false);
   const { email, isAdmin, remainingMs, logout, checkSession } = useAuth();
+  const { t } = useI18n();
   const [, navigate] = useLocation();
   const [timeLeft, setTimeLeft] = useState(remainingMs);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
@@ -156,7 +158,7 @@ export default function Dashboard() {
       }
       if (res.status === 429) {
         const data = await res.json();
-        setRateLimitMessage(data.message || 'You have reached the maximum number of AI analysis requests per hour. Please wait and try again later.');
+        setRateLimitMessage(data.message || t("requestLimitReached"));
         throw new Error(data.message);
       }
       if (!res.ok) throw new Error('Failed to fetch analysis');
@@ -197,20 +199,20 @@ export default function Dashboard() {
               <AlertTriangle className="w-7 h-7 text-amber-500" />
             </div>
             <h3 className="text-lg font-serif font-medium text-foreground">
-              Request Limit Reached
+              {t("requestLimitReached")}
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed font-light">
               {rateLimitMessage}
             </p>
             <p className="text-xs text-muted-foreground/60">
-              Your limit will reset automatically. You can still view charts and stock data.
+              {t("limitResetNote")}
             </p>
             <button
               onClick={() => setRateLimitMessage(null)}
               className="w-full h-10 bg-primary text-primary-foreground rounded-lg text-sm font-medium tracking-widest hover:bg-primary/90 transition-colors cursor-pointer"
               data-testid="button-dismiss-rate-limit"
             >
-              OK, GOT IT
+              {t("okGotIt")}
             </button>
           </div>
         </div>
@@ -228,7 +230,7 @@ export default function Dashboard() {
                 data-testid="button-back-scanner"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                Scanner
+                {t("scanner")}
               </button>
             )}
             <span className="font-light" data-testid="text-session-email">{email}</span>
@@ -239,13 +241,14 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
             <button
               onClick={() => navigate("/scanner")}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer"
               data-testid="button-scanner"
             >
               <Scan className="w-3.5 h-3.5" />
-              Scanner
+              {t("scanner")}
             </button>
             {isAdmin && (
               <button
@@ -254,7 +257,7 @@ export default function Dashboard() {
                 data-testid="button-admin-config"
               >
                 <Settings className="w-3.5 h-3.5" />
-                Manage Users
+                {t("manageUsers")}
               </button>
             )}
             <button
@@ -263,7 +266,7 @@ export default function Dashboard() {
               data-testid="button-logout"
             >
               <LogOut className="w-3.5 h-3.5" />
-              Logout
+              {t("logout")}
             </button>
           </div>
         </div>
@@ -272,14 +275,14 @@ export default function Dashboard() {
           <div className="text-center md:text-left space-y-3">
             <div className="flex items-center justify-center md:justify-start gap-2 text-primary mb-1">
               <Crown className="w-4 h-4" strokeWidth={1.5} />
-              <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">Dexter Chia Private Clients</span>
+              <span className="text-[10px] uppercase tracking-[0.25em] font-medium opacity-80">{t("privateClients")}</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight text-foreground" data-testid="text-app-title">
-              AI Stock <span className="text-primary italic">Trend</span> Terminal
+              {t("appTitle")} <span className="text-primary italic">{t("appTitleHighlight")}</span> {t("appTitleEnd")}
             </h1>
             <p className="text-muted-foreground font-light tracking-wide text-sm max-w-md">
-              AI-Powered Chart Pattern & Trend Analytics for the Discerning Investor. <br className="hidden md:block"/>
-              Managed by Dexter Chia, Remisier from M+ Global.
+              {t("appSubtitle")} <br className="hidden md:block"/>
+              {t("appSubtitle2")}
             </p>
           </div>
           
@@ -288,7 +291,7 @@ export default function Dashboard() {
               <div className="relative w-full md:w-80 bg-card">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60" />
                 <Input 
-                  placeholder="Search Symbol (e.g. KLSE:GENM)" 
+                  placeholder={t("searchPlaceholder")} 
                   className="pl-11 h-12 bg-transparent border-none text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-0 font-medium tracking-wide"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -296,7 +299,7 @@ export default function Dashboard() {
                 />
               </div>
               <Button type="submit" className="h-12 px-8 rounded-none bg-primary text-primary-foreground font-medium tracking-widest hover:bg-primary/90 transition-all cursor-pointer" data-testid="button-analyze">
-                ANALYZE
+                {t("analyze")}
               </Button>
             </form>
             <div className="flex justify-between md:justify-end px-1">
@@ -328,13 +331,13 @@ export default function Dashboard() {
              {stockLoading ? (
                <div className="h-[500px] flex flex-col items-center justify-center bg-card/20 rounded-lg border border-primary/10 border-dashed text-muted-foreground font-light">
                   <Loader2 className="w-8 h-8 mb-4 text-primary/40 animate-spin" />
-                  Fetching Market Data...
+                  {t("fetchingMarketData")}
                </div>
              ) : stockError ? (
                <div className="h-[500px] flex flex-col items-center justify-center bg-card/20 rounded-lg border border-red-500/20 border-dashed text-muted-foreground font-light">
                   <Diamond className="w-8 h-8 mb-4 text-red-500/40" />
-                  <p className="text-red-400">Failed to load data for {symbol}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Try a different symbol (e.g., AAPL, MSFT, KLSE:MAYBANK)</p>
+                  <p className="text-red-400">{t("failedToLoad")} {symbol}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t("tryDifferentSymbol")}</p>
                </div>
              ) : stockData?.candles && stockData.candles.length > 0 ? (
                <div className="glass-panel p-1 rounded-lg h-[500px]">
@@ -343,7 +346,7 @@ export default function Dashboard() {
              ) : (
                <div className="h-[500px] flex flex-col items-center justify-center bg-card/20 rounded-lg border border-primary/10 border-dashed text-muted-foreground font-light">
                   <Diamond className="w-8 h-8 mb-4 text-primary/20 animate-pulse" />
-                  No data available
+                  {t("noDataAvailable")}
                </div>
              )}
 
@@ -351,19 +354,19 @@ export default function Dashboard() {
                <div className="glass-panel p-4 rounded-lg border border-primary/10">
                  <div className="flex items-center gap-2 text-muted-foreground">
                    <Loader2 className="w-4 h-4 animate-spin text-primary/40" />
-                   <span className="text-sm font-light">Analyzing chart patterns...</span>
+                   <span className="text-sm font-light">{t("analyzingPatterns")}</span>
                  </div>
                </div>
              ) : analysis?.patternAnalysis ? (
                <div className="glass-panel p-4 rounded-lg border border-primary/10">
                  <div className="flex items-center justify-between mb-2">
                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                     <BrainCircuit className="w-3 h-3 text-primary" /> AI Pattern Analysis
+                     <BrainCircuit className="w-3 h-3 text-primary" /> {t("aiPatternAnalysis")}
                    </span>
                    <div className="group relative">
                      <Info className="w-3.5 h-3.5 text-muted-foreground/50 hover:text-primary cursor-help transition-colors" />
                      <div className="absolute right-0 top-5 z-50 hidden group-hover:block w-64 p-3 bg-card border border-primary/20 rounded-lg shadow-xl text-[11px] text-muted-foreground leading-relaxed">
-                       This information is AI-generated. It does not guarantee any results and is only for your reference. For more professional advice, kindly PM Dexter.
+                       {t("aiDisclaimer")}
                      </div>
                    </div>
                  </div>

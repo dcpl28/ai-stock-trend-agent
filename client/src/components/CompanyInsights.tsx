@@ -2,6 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2, TrendingUp, AlertCircle, Loader2, MapPin, Calendar, Briefcase, Factory } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface QuoteData {
   symbol: string;
@@ -47,10 +48,11 @@ export function CompanyInsights({
   quote,
   isLoading,
 }: CompanyInsightsProps) {
+  const { t } = useI18n();
   const currency = quote?.currency || "USD";
 
   const formatLargeNumber = (num: number | undefined) => {
-    if (!num) return "N/A";
+    if (!num) return t("na");
     if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
     if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
     if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
@@ -67,7 +69,7 @@ export function CompanyInsights({
           <CardContent className="py-12 flex flex-col items-center justify-center text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin text-primary/40 mb-3" />
             <span className="text-sm font-light">
-              Loading company insights...
+              {t("loadingInsights")}
             </span>
           </CardContent>
         </Card>
@@ -76,13 +78,13 @@ export function CompanyInsights({
           <CardHeader className="pb-3 border-b border-white/5">
             <CardTitle className="flex items-center gap-2 text-[10px] text-primary uppercase tracking-widest font-medium">
               <Building2 className="w-4 h-4 text-primary" />
-              Company Profile
+              {t("companyProfile")}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
             <div className="space-y-2">
               <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
-                Core Business
+                {t("coreBusiness")}
               </h4>
               <p
                 className="text-sm text-foreground/90 leading-relaxed font-light"
@@ -97,7 +99,7 @@ export function CompanyInsights({
                 {profile.sector && (
                   <div className="space-y-1" data-testid="text-company-sector">
                     <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <Briefcase className="w-3 h-3" /> Sector
+                      <Briefcase className="w-3 h-3" /> {t("sector")}
                     </div>
                     <p className="text-xs text-foreground/80 font-light">{profile.sector}</p>
                   </div>
@@ -105,7 +107,7 @@ export function CompanyInsights({
                 {profile.industry && (
                   <div className="space-y-1" data-testid="text-company-industry">
                     <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <Factory className="w-3 h-3" /> Industry
+                      <Factory className="w-3 h-3" /> {t("industry")}
                     </div>
                     <p className="text-xs text-foreground/80 font-light">{profile.industry}</p>
                   </div>
@@ -113,7 +115,7 @@ export function CompanyInsights({
                 {profile.founded && profile.founded !== "N/A" && (
                   <div className="space-y-1" data-testid="text-company-founded">
                     <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <Calendar className="w-3 h-3" /> Founded
+                      <Calendar className="w-3 h-3" /> {t("founded")}
                     </div>
                     <p className="text-xs text-foreground/80 font-light">{profile.founded}</p>
                   </div>
@@ -121,7 +123,7 @@ export function CompanyInsights({
                 {profile.headquarters && (
                   <div className="space-y-1" data-testid="text-company-hq">
                     <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <MapPin className="w-3 h-3" /> Headquarters
+                      <MapPin className="w-3 h-3" /> {t("headquarters")}
                     </div>
                     <p className="text-xs text-foreground/80 font-light">{profile.headquarters}</p>
                   </div>
@@ -132,7 +134,7 @@ export function CompanyInsights({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <h4 className="text-xs uppercase tracking-widest text-green-500/80 font-medium flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> Strengths
+                  <TrendingUp className="w-3 h-3" /> {t("strengths")}
                 </h4>
                 <ul className="space-y-1">
                   {profile.strengths.map((item, i) => (
@@ -150,7 +152,7 @@ export function CompanyInsights({
 
               <div className="space-y-2">
                 <h4 className="text-xs uppercase tracking-widest text-red-400/80 font-medium flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" /> Risks
+                  <AlertCircle className="w-3 h-3" /> {t("risks")}
                 </h4>
                 <ul className="space-y-1">
                   {profile.risks.map((item, i) => (

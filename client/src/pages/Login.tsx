@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Crown, LogIn, Shield, Loader2, AlertCircle } from "lucide-react";
 
 export default function Login() {
   const { login, adminLogin } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState<"user" | "admin">("user");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,22 +45,26 @@ export default function Login() {
     <div className="min-h-screen font-sans flex items-center justify-center relative">
       <div className="fixed top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-transparent pointer-events-none" />
 
+      <div className="fixed top-4 right-4 z-20">
+        <LanguageSwitcher />
+      </div>
+
       <div className="relative z-10 w-full max-w-md px-6">
         <div className="text-center mb-10">
           <div className="flex items-center justify-center gap-2 text-primary mb-3">
             <Crown className="w-5 h-5" strokeWidth={1.5} />
             <span className="text-[11px] uppercase tracking-[0.25em] font-medium opacity-80">
-              Dexter Chia Private Clients
+              {t("privateClients")}
             </span>
           </div>
           <h1
             className="text-4xl font-serif font-medium tracking-tight text-foreground"
             data-testid="text-login-title"
           >
-            AI Stock <span className="text-primary italic">Trend</span> Terminal
+            {t("appTitle")} <span className="text-primary italic">{t("appTitleHighlight")}</span> {t("appTitleEnd")}
           </h1>
           <p className="text-muted-foreground font-light tracking-wide text-sm mt-2">
-            Please sign in to access the analysis tools
+            {t("signInPrompt")}
           </p>
         </div>
 
@@ -76,7 +82,7 @@ export default function Login() {
             data-testid="button-user-tab"
           >
             <LogIn className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
-            Client Login
+            {t("clientLogin")}
           </button>
           <button
             onClick={() => {
@@ -91,7 +97,7 @@ export default function Login() {
             data-testid="button-admin-tab"
           >
             <Shield className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
-            Admin
+            {t("admin")}
           </button>
         </div>
 
@@ -110,11 +116,11 @@ export default function Login() {
             <form onSubmit={handleUserLogin} className="space-y-4">
               <div>
                 <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">
-                  Email
+                  {t("email")}
                 </label>
                 <Input
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder={t("emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-11 bg-background/50 border-white/10 focus-visible:border-primary/50 text-foreground"
@@ -124,11 +130,11 @@ export default function Login() {
               </div>
               <div>
                 <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">
-                  Password
+                  {t("password")}
                 </label>
                 <Input
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={t("passwordPlaceholder")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-11 bg-background/50 border-white/10 focus-visible:border-primary/50 text-foreground"
@@ -145,22 +151,22 @@ export default function Login() {
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  "SIGN IN"
+                  t("signIn")
                 )}
               </Button>
               <p className="text-[11px] text-muted-foreground/60 text-center mt-3">
-                Sessions expire after 15 minutes of login
+                {t("sessionExpiry")}
               </p>
             </form>
           ) : (
             <form onSubmit={handleAdminLogin} className="space-y-4">
               <div>
                 <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 block">
-                  Admin Password
+                  {t("adminPassword")}
                 </label>
                 <Input
                   type="password"
-                  placeholder="Enter admin password"
+                  placeholder={t("adminPasswordPlaceholder")}
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   className="h-11 bg-background/50 border-white/10 focus-visible:border-primary/50 text-foreground"
@@ -177,11 +183,11 @@ export default function Login() {
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  "ADMIN LOGIN"
+                  t("adminLogin")
                 )}
               </Button>
               <p className="text-[11px] text-muted-foreground/60 text-center mt-3">
-                Admin access lets you manage allowed users
+                {t("adminAccessNote")}
               </p>
             </form>
           )}
