@@ -718,7 +718,7 @@ export async function registerRoutes(
 
   app.post("/api/analysis", requireAuth, async (req, res) => {
     try {
-      const { symbol, candles, quote } = req.body;
+      const { symbol, candles, quote, lang } = req.body;
 
       if (!symbol || !candles || candles.length === 0) {
         return res.status(400).json({ error: "Symbol and candle data are required" });
@@ -792,6 +792,15 @@ Use the above verified information for the companyProfile fields. The "business"
         exchangeContext = `This stock trades on ${quote?.exchange || "a US exchange"}. The company name is "${companyName}". Provide the company profile based on what you know about this specific company.`;
       }
 
+      const langMap: Record<string, string> = {
+        zh: "Mandarin Chinese (简体中文)",
+        ms: "Bahasa Melayu",
+      };
+      const responseLang = lang && langMap[lang] ? langMap[lang] : null;
+      const langInstruction = responseLang
+        ? `\n\nCRITICAL LANGUAGE REQUIREMENT: ALL text content in the response (patternAnalysis, sentiment, companyProfile.business, companyProfile.strengths, companyProfile.risks, recommendation, companyProfile.sector, companyProfile.industry, companyProfile.headquarters) MUST be written in ${responseLang}. Only the JSON keys, trend value (bullish/bearish/neutral), numeric values, and indicator signal values (Overbought/Oversold/Neutral/Strong/Weak/Upward/Downward/Sideways) should remain in English.`
+        : "";
+
       const prompt = `You are an expert stock market technical analyst. Analyze the following stock data for ${symbol} (${companyName}) and provide a comprehensive analysis.
 
 ${exchangeContext}
@@ -828,7 +837,7 @@ Provide your analysis in the following JSON format exactly:
   "recommendation": "<brief actionable recommendation for investors>"
 }
 
-IMPORTANT: The company profile must be about the EXACT company identified by the symbol and name above. Do NOT confuse with similarly named companies. Be accurate with your technical calculations. Base RSI, MACD, and moving averages on the actual price data provided. Return ONLY valid JSON, no markdown.`;
+IMPORTANT: The company profile must be about the EXACT company identified by the symbol and name above. Do NOT confuse with similarly named companies. Be accurate with your technical calculations. Base RSI, MACD, and moving averages on the actual price data provided. Return ONLY valid JSON, no markdown.${langInstruction}`;
 
       let content = "";
       const aiConfig = getAIProvider();

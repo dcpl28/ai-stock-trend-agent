@@ -86,7 +86,7 @@ export default function Dashboard() {
   const [searchInput, setSearchInput] = useState("");
   const [analysisRequested, setAnalysisRequested] = useState(false);
   const { email, isAdmin, remainingMs, logout, checkSession } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [, navigate] = useLocation();
   const [timeLeft, setTimeLeft] = useState(remainingMs);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
@@ -141,7 +141,7 @@ export default function Dashboard() {
   });
 
   const { data: analysis, isLoading: analysisLoading } = useQuery<AnalysisResponse>({
-    queryKey: ['/api/analysis', symbol, stockData?.candles?.length],
+    queryKey: ['/api/analysis', symbol, stockData?.candles?.length, lang],
     queryFn: async () => {
       const res = await fetch('/api/analysis', {
         method: 'POST',
@@ -150,6 +150,7 @@ export default function Dashboard() {
           symbol,
           candles: stockData?.candles || [],
           quote: quoteData || null,
+          lang,
         }),
       });
       if (res.status === 401) {
