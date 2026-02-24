@@ -798,7 +798,7 @@ Use the above verified information for the companyProfile fields. The "business"
       };
       const responseLang = lang && langMap[lang] ? langMap[lang] : null;
       const langInstruction = responseLang
-        ? `\n\nCRITICAL LANGUAGE REQUIREMENT: ALL text content in the response (patternAnalysis, sentiment, companyProfile.business, companyProfile.strengths, companyProfile.risks, recommendation, companyProfile.sector, companyProfile.industry, companyProfile.headquarters) MUST be written in ${responseLang}. Only the JSON keys, trend value (bullish/bearish/neutral), numeric values, and indicator signal values (Overbought/Oversold/Neutral/Strong/Weak/Upward/Downward/Sideways) should remain in English.`
+        ? `\n\nCRITICAL LANGUAGE REQUIREMENT: ALL text content in the response (patternAnalysis, sentiment, companyProfile.business, companyProfile.strengths, companyProfile.risks, recommendation, companyProfile.sector, companyProfile.industry) MUST be written in ${responseLang}. Only the JSON keys, trend value (bullish/bearish/neutral), numeric values, and indicator signal values (Overbought/Oversold/Neutral/Strong/Weak/Upward/Downward/Sideways) should remain in English.`
         : "";
 
       const prompt = `You are an expert stock market technical analyst. Analyze the following stock data for ${symbol} (${companyName}) and provide a comprehensive analysis.
@@ -829,8 +829,6 @@ Provide your analysis in the following JSON format exactly:
     "business": "<detailed 2-3 sentence description of what the company does, its main products/services, and which industry/sector it operates in>",
     "sector": "<company sector, e.g., Financial Services, Technology, Healthcare, Consumer Products, Plantation, etc.>",
     "industry": "<specific industry, e.g., Banking, Semiconductor, Oil & Gas, Telecommunications, etc.>",
-    "founded": "<year founded or 'N/A' if unknown>",
-    "headquarters": "<city and country of headquarters>",
     "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
     "risks": ["<risk 1>", "<risk 2>", "<risk 3>"]
   },
@@ -893,8 +891,6 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
             business: "Information unavailable.",
             sector: "N/A",
             industry: "N/A",
-            founded: "N/A",
-            headquarters: "N/A",
             strengths: [],
             risks: [],
           },

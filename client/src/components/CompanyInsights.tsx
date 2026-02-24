@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, TrendingUp, AlertCircle, Loader2, MapPin, Calendar, Briefcase, Factory } from "lucide-react";
+import { Building2, TrendingUp, AlertCircle, Loader2, Briefcase, Factory } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 interface QuoteData {
@@ -28,8 +28,6 @@ interface AnalysisData {
     business: string;
     sector?: string;
     industry?: string;
-    founded?: string;
-    headquarters?: string;
     strengths: string[];
     risks: string[];
   };
@@ -94,8 +92,8 @@ export function CompanyInsights({
               </p>
             </div>
 
-            {(profile.sector || profile.industry || profile.founded || profile.headquarters) && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-3 border-y border-white/5">
+            {(profile.sector || profile.industry) && (
+              <div className="grid grid-cols-2 gap-3 py-3 border-y border-white/5">
                 {profile.sector && (
                   <div className="space-y-1" data-testid="text-company-sector">
                     <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -110,22 +108,6 @@ export function CompanyInsights({
                       <Factory className="w-3 h-3" /> {t("industry")}
                     </div>
                     <p className="text-xs text-foreground/80 font-light">{profile.industry}</p>
-                  </div>
-                )}
-                {profile.founded && profile.founded !== "N/A" && (
-                  <div className="space-y-1" data-testid="text-company-founded">
-                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <Calendar className="w-3 h-3" /> {t("founded")}
-                    </div>
-                    <p className="text-xs text-foreground/80 font-light">{profile.founded}</p>
-                  </div>
-                )}
-                {profile.headquarters && (
-                  <div className="space-y-1" data-testid="text-company-hq">
-                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <MapPin className="w-3 h-3" /> {t("headquarters")}
-                    </div>
-                    <p className="text-xs text-foreground/80 font-light">{profile.headquarters}</p>
                   </div>
                 )}
               </div>
