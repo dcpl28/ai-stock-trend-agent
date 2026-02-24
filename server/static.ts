@@ -23,17 +23,4 @@ export function serveStatic(app: Express) {
   app.get(BASE_PATH, (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
-
-  app.use((req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/vite-hmr")) {
-      return next();
-    }
-    if (!req.path.startsWith(BASE_PATH) && req.path !== "/") {
-      return res.redirect(301, BASE_PATH + req.path);
-    }
-    if (req.path === "/") {
-      return res.redirect(301, BASE_PATH);
-    }
-    next();
-  });
 }

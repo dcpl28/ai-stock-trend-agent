@@ -28,11 +28,7 @@ if (process.env.NODE_ENV === "production") {
   app.use((req, res, next) => {
     const host = req.hostname;
     if (host && host.endsWith(".replit.app")) {
-      let targetPath = req.originalUrl;
-      if (!targetPath.startsWith("/api") && !targetPath.startsWith("/ai-terminal")) {
-        targetPath = "/ai-terminal" + (targetPath === "/" ? "" : targetPath);
-      }
-      return res.redirect(301, `https://dexterchia.com${targetPath}`);
+      return res.redirect(301, `https://dexterchia.com/ai-terminal`);
     }
     next();
   });
