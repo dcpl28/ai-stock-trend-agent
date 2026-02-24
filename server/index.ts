@@ -51,6 +51,7 @@ app.use(
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    rolling: false,
     cookie: {
       maxAge: 15 * 60 * 1000,
       httpOnly: true,

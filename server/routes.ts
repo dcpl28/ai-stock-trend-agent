@@ -54,7 +54,7 @@ function getAIProvider(): { type: "openai" | "anthropic" | "replit" } {
   return { type: "replit" };
 }
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
@@ -63,6 +63,14 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (elapsed > 15 * 60 * 1000) {
     req.session.destroy(() => {});
     return res.status(401).json({ error: "Session expired" });
+  }
+  if (!req.session.isAdmin) {
+    const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.ip || "unknown";
+    const blocked = await storage.isIpBlocked(clientIp);
+    if (blocked) {
+      req.session.destroy(() => {});
+      return res.status(403).json({ error: "Your IP address has been blocked. Please contact the admin." });
+    }
   }
   next();
 }
@@ -474,10 +482,13 @@ export async function registerRoutes(
       await storage.resetFailedLogins(clientIp);
       await storage.updateLoginInfo(user.id, clientIp);
 
+      const now = Date.now();
       req.session.userId = user.id;
       req.session.email = user.email;
       req.session.isAdmin = false;
-      req.session.loginAt = Date.now();
+      req.session.loginAt = now;
+      req.session.cookie.expires = new Date(now + 15 * 60 * 1000);
+      req.session.cookie.maxAge = 15 * 60 * 1000;
 
       res.json({ email: user.email, expiresIn: 15 * 60 * 1000 });
     } catch (error: any) {
@@ -492,10 +503,13 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid admin password" });
       }
 
+      const now = Date.now();
       req.session.userId = "admin";
       req.session.email = "admin";
       req.session.isAdmin = true;
-      req.session.loginAt = Date.now();
+      req.session.loginAt = now;
+      req.session.cookie.expires = new Date(now + 15 * 60 * 1000);
+      req.session.cookie.maxAge = 15 * 60 * 1000;
 
       res.json({ isAdmin: true });
     } catch (error: any) {
@@ -509,7 +523,7 @@ export async function registerRoutes(
     });
   });
 
-  app.get("/api/auth/session", (req, res) => {
+  app.get("/api/auth/session", async (req, res) => {
     if (!req.session.userId) {
       return res.json({ authenticated: false });
     }
@@ -520,6 +534,15 @@ export async function registerRoutes(
     if (remaining <= 0) {
       req.session.destroy(() => {});
       return res.json({ authenticated: false });
+    }
+
+    if (!req.session.isAdmin) {
+      const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.ip || "unknown";
+      const blocked = await storage.isIpBlocked(clientIp);
+      if (blocked) {
+        req.session.destroy(() => {});
+        return res.json({ authenticated: false });
+      }
     }
 
     res.json({
