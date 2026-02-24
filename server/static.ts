@@ -2,8 +2,6 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 
-const BASE_PATH = "/ai-terminal";
-
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
   if (!fs.existsSync(distPath)) {
@@ -12,15 +10,9 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(BASE_PATH, express.static(distPath));
+  app.use(express.static(distPath));
 
-  app.use(express.static(distPath, { index: false }));
-
-  app.get(`${BASE_PATH}/{*path}`, (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
-
-  app.get(BASE_PATH, (_req, res) => {
+  app.use("/{*path}", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

@@ -66,7 +66,7 @@ Pre-built integration modules provided by Replit:
 
 5. **Password security**: User passwords are hashed with bcryptjs (10 salt rounds) before storage. Admin password is read from ADMIN_PASSWORD environment secret (required).
 
-6. **Base path & domain**: In production, the app is served under `/ai-terminal` base path (dexterchia.com/ai-terminal). Requests to `*.replit.app` are redirected to `dexterchia.com`. Legacy paths (`/scanner`, `/admin`) redirect to `/ai-terminal/scanner`, `/ai-terminal/admin`. Wouter Router uses `base="/ai-terminal"` in production, empty in dev.
+6. **Subdomain & domain**: In production, the app is served at `ai.dexterchia.com` (subdomain). Requests to `*.replit.app` are redirected to `ai.dexterchia.com`. The main `dexterchia.com` domain remains on the user's original hosting. No base path needed since the subdomain is dedicated to the terminal.
 
 ## External Dependencies
 
