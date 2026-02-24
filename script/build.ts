@@ -8,7 +8,7 @@ const allowlist = [
   "@anthropic-ai/sdk",
   "@google/generative-ai",
   "axios",
-  "bcrypt",
+  "bcryptjs",
   "connect-pg-simple",
   "cors",
   "date-fns",
