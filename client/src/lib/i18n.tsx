@@ -669,7 +669,7 @@ export function LanguageSwitcher({ compact }: { compact?: boolean }) {
   const { lang, setLang, t } = useI18n();
 
   const languages: { code: Language; label: string; flag: string }[] = [
-    { code: "en", label: "EN", flag: "🇬🇧" },
+    { code: "en", label: "EN", flag: "🇺🇸" },
     { code: "zh", label: "中文", flag: "🇨🇳" },
     { code: "ms", label: "BM", flag: "🇲🇾" },
   ];
