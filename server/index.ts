@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import crypto from "crypto";
+import { testConnection } from "./db";
 
 declare module "express-session" {
   interface SessionData {
@@ -86,37 +87,56 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await registerRoutes(httpServer, app);
+  try {
+    console.log("[STARTUP] Starting server initialization...");
+    console.log(`[STARTUP] NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`[STARTUP] DATABASE_URL: ${process.env.DATABASE_URL ? "set" : "NOT SET"}`);
 
-  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    console.error("Internal Server Error:", err);
-
-    if (res.headersSent) {
-      return next(err);
+    console.log("[STARTUP] Testing database connection...");
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      console.error("[STARTUP] WARNING: Database connection failed, some features may not work");
     }
 
-    return res.status(status).json({ message });
-  });
+    console.log("[STARTUP] Registering routes...");
+    await registerRoutes(httpServer, app);
 
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
+    app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      console.error("Internal Server Error:", err);
+
+      if (res.headersSent) {
+        return next(err);
+      }
+
+      return res.status(status).json({ message });
+    });
+
+    if (process.env.NODE_ENV === "production") {
+      console.log("[STARTUP] Serving static files (production mode)...");
+      serveStatic(app);
+    } else {
+      console.log("[STARTUP] Setting up Vite dev server...");
+      const { setupVite } = await import("./vite");
+      await setupVite(httpServer, app);
+    }
+
+    const port = parseInt(process.env.PORT || "5000", 10);
+    httpServer.listen(
+      {
+        port,
+        host: "0.0.0.0",
+        reusePort: true,
+      },
+      () => {
+        log(`serving on port ${port}`);
+        console.log("[STARTUP] Server started successfully");
+      },
+    );
+  } catch (err) {
+    console.error("[STARTUP] Fatal error during server initialization:", err);
+    process.exit(1);
   }
-
-  const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
 })();
