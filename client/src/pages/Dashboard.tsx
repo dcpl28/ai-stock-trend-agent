@@ -303,6 +303,7 @@ export default function Dashboard() {
                 {t("analyze")}
               </Button>
             </form>
+            <p className="text-xs text-muted-foreground mt-1 px-1" data-testid="text-analyze-hint">{t("analyzeHint")}</p>
             <div className="flex justify-between md:justify-end px-1">
             </div>
           </div>
