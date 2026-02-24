@@ -12,11 +12,17 @@ const yahooFinance = new YahooFinance();
 
 const KLSE_NAME_TO_CODE: Record<string, string> = (() => {
   try {
-    const raw = readFileSync(join(__dirname, "..", "server", "klse-stocks.json"), "utf8");
+    const raw = readFileSync(
+      join(__dirname, "..", "server", "klse-stocks.json"),
+      "utf8",
+    );
     return JSON.parse(raw);
   } catch {
     try {
-      const raw = readFileSync(join(process.cwd(), "server", "klse-stocks.json"), "utf8");
+      const raw = readFileSync(
+        join(process.cwd(), "server", "klse-stocks.json"),
+        "utf8",
+      );
       return JSON.parse(raw);
     } catch {
       console.warn("Could not load klse-stocks.json");
@@ -39,10 +45,12 @@ if (!ADMIN_PASSWORD) {
   console.error("ADMIN_PASSWORD environment variable is required");
 }
 
-function getAIProvider(): { type: "openai" | "anthropic" | "replit"; } {
+function getAIProvider(): { type: "openai" | "anthropic" | "replit" } {
   const provider = (process.env.AI_PROVIDER || "replit").toLowerCase();
-  if (provider === "openai" && process.env.OPENAI_API_KEY) return { type: "openai" };
-  if (provider === "anthropic" && process.env.ANTHROPIC_API_KEY) return { type: "anthropic" };
+  if (provider === "openai" && process.env.OPENAI_API_KEY)
+    return { type: "openai" };
+  if (provider === "anthropic" && process.env.ANTHROPIC_API_KEY)
+    return { type: "anthropic" };
   return { type: "replit" };
 }
 
@@ -68,7 +76,10 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 async function resolveYahooSymbol(symbol: string): Promise<string> {
   if (symbol.startsWith("KLSE:") || symbol.startsWith("MYX:")) {
-    const ticker = symbol.replace("KLSE:", "").replace("MYX:", "").toUpperCase();
+    const ticker = symbol
+      .replace("KLSE:", "")
+      .replace("MYX:", "")
+      .toUpperCase();
 
     if (/^\d+$/.test(ticker)) {
       return `${ticker}.KL`;
@@ -80,15 +91,16 @@ async function resolveYahooSymbol(symbol: string): Promise<string> {
     const directSymbol = `${ticker}.KL`;
     try {
       const q: any = await yahooFinance.quote(directSymbol);
-      if (q && q.symbol && q.currency && q.regularMarketPrice < 1e6) return directSymbol;
+      if (q && q.symbol && q.currency && q.regularMarketPrice < 1e6)
+        return directSymbol;
     } catch {}
 
     const searchQueries = [ticker, `${ticker} Berhad`, `${ticker} Malaysia`];
     for (const query of searchQueries) {
       try {
         const searchResult: any = await yahooFinance.search(query);
-        const klseMatch = searchResult.quotes?.find((q: any) =>
-          q.symbol?.endsWith(".KL") && q.quoteType === "EQUITY"
+        const klseMatch = searchResult.quotes?.find(
+          (q: any) => q.symbol?.endsWith(".KL") && q.quoteType === "EQUITY",
         );
         if (klseMatch) return klseMatch.symbol;
       } catch {}
@@ -112,13 +124,26 @@ async function resolveYahooSymbol(symbol: string): Promise<string> {
 function getStartDate(range: string): Date {
   const now = new Date();
   switch (range) {
-    case "1mo": now.setMonth(now.getMonth() - 1); break;
-    case "3mo": now.setMonth(now.getMonth() - 3); break;
-    case "6mo": now.setMonth(now.getMonth() - 6); break;
-    case "1y": now.setFullYear(now.getFullYear() - 1); break;
-    case "2y": now.setFullYear(now.getFullYear() - 2); break;
-    case "5y": now.setFullYear(now.getFullYear() - 5); break;
-    default: now.setMonth(now.getMonth() - 6);
+    case "1mo":
+      now.setMonth(now.getMonth() - 1);
+      break;
+    case "3mo":
+      now.setMonth(now.getMonth() - 3);
+      break;
+    case "6mo":
+      now.setMonth(now.getMonth() - 6);
+      break;
+    case "1y":
+      now.setFullYear(now.getFullYear() - 1);
+      break;
+    case "2y":
+      now.setFullYear(now.getFullYear() - 2);
+      break;
+    case "5y":
+      now.setFullYear(now.getFullYear() - 5);
+      break;
+    default:
+      now.setMonth(now.getMonth() - 6);
   }
   return now;
 }
@@ -126,20 +151,44 @@ function getStartDate(range: string): Date {
 const rssParser = new RSSParser();
 
 const MALAYSIA_PUBLISHERS = [
-  "the edge markets", "theedgemarkets", "the edge malaysia",
-  "new straits times", "nst", "the star", "thestar",
-  "malaysiakini", "free malaysia today", "freemalaysiatoday",
-  "bernama", "malay mail", "malaymail",
-  "sin chew", "sinchew", "china press",
-  "news daily", "newsdaily", "harian metro",
-  "berita harian", "utusan", "fokus",
-  "bursa marketplace", "bursa malaysia",
-  "the malaysian reserve", "malaysian reserve",
-  "digital news asia", "lowyat", "soyacincau",
-  "ringgit plus", "imoney", "i3investor",
+  "the edge markets",
+  "theedgemarkets",
+  "the edge malaysia",
+  "new straits times",
+  "nst",
+  "the star",
+  "thestar",
+  "malaysiakini",
+  "free malaysia today",
+  "freemalaysiatoday",
+  "bernama",
+  "malay mail",
+  "malaymail",
+  "sin chew",
+  "sinchew",
+  "china press",
+  "news daily",
+  "newsdaily",
+  "harian metro",
+  "berita harian",
+  "utusan",
+  "fokus",
+  "bursa marketplace",
+  "bursa malaysia",
+  "the malaysian reserve",
+  "malaysian reserve",
+  "digital news asia",
+  "lowyat",
+  "soyacincau",
+  "ringgit plus",
+  "imoney",
+  "i3investor",
 ];
 
-async function fetchMalaysiaNews(companyName: string, ticker?: string): Promise<any[]> {
+async function fetchMalaysiaNews(
+  companyName: string,
+  ticker?: string,
+): Promise<any[]> {
   const allNews: any[] = [];
 
   try {
@@ -157,15 +206,28 @@ async function fetchMalaysiaNews(companyName: string, ticker?: string): Promise<
         const feed = await rssParser.parseURL(rssUrl);
 
         for (const item of feed.items || []) {
-          const source = (item.creator || item["dc:creator"] || item.source || "").toString().toLowerCase();
+          const source = (
+            item.creator ||
+            item["dc:creator"] ||
+            item.source ||
+            ""
+          )
+            .toString()
+            .toLowerCase();
           const title = (item.title || "").toLowerCase();
 
           const sourceText = `${source} ${title}`;
-          const isMalaysian = MALAYSIA_PUBLISHERS.some(pub => sourceText.includes(pub));
+          const isMalaysian = MALAYSIA_PUBLISHERS.some((pub) =>
+            sourceText.includes(pub),
+          );
 
-          let publisher = item.creator || item["dc:creator"] || item.source || "";
+          let publisher =
+            item.creator || item["dc:creator"] || item.source || "";
           if (typeof publisher === "object" && publisher !== null) {
-            publisher = (publisher as any)._ || (publisher as any).$ || JSON.stringify(publisher);
+            publisher =
+              (publisher as any)._ ||
+              (publisher as any).$ ||
+              JSON.stringify(publisher);
           }
           publisher = String(publisher);
 
@@ -182,7 +244,9 @@ async function fetchMalaysiaNews(companyName: string, ticker?: string): Promise<
             title: item.title || "",
             publisher: publisher,
             link: item.link || "",
-            publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+            publishedAt: item.pubDate
+              ? new Date(item.pubDate).toISOString()
+              : null,
             thumbnail: null,
             isMalaysian,
           });
@@ -196,24 +260,28 @@ async function fetchMalaysiaNews(companyName: string, ticker?: string): Promise<
   }
 
   const seen = new Set<string>();
-  const unique = allNews.filter(n => {
+  const unique = allNews.filter((n) => {
     const key = n.title.toLowerCase().trim();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 
-  const malaysian = unique.filter(n => n.isMalaysian);
-  const others = unique.filter(n => !n.isMalaysian);
+  const malaysian = unique.filter((n) => n.isMalaysian);
+  const others = unique.filter((n) => !n.isMalaysian);
 
-  const result = [...malaysian, ...others].slice(0, 10).map(({ isMalaysian, ...rest }) => rest);
+  const result = [...malaysian, ...others]
+    .slice(0, 10)
+    .map(({ isMalaysian, ...rest }) => rest);
 
   if (result.length === 0) {
     try {
-      const encoded = encodeURIComponent(`${companyName} Malaysia stock market`);
+      const encoded = encodeURIComponent(
+        `${companyName} Malaysia stock market`,
+      );
       const rssUrl = `https://news.google.com/rss/search?q=${encoded}&hl=en-MY&gl=MY&ceid=MY:en`;
       const feed = await rssParser.parseURL(rssUrl);
-      return (feed.items || []).slice(0, 8).map(item => {
+      return (feed.items || []).slice(0, 8).map((item) => {
         let publisher = item.creator || item["dc:creator"] || item.source || "";
         if (typeof publisher === "object" && publisher !== null) {
           publisher = (publisher as any)._ || (publisher as any).$ || "";
@@ -230,7 +298,9 @@ async function fetchMalaysiaNews(companyName: string, ticker?: string): Promise<
           title: item.title || "",
           publisher: String(publisher),
           link: item.link || "",
-          publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+          publishedAt: item.pubDate
+            ? new Date(item.pubDate).toISOString()
+            : null,
           thumbnail: null,
         };
       });
@@ -248,7 +318,9 @@ interface I3CompanyProfile {
   description: string;
 }
 
-async function fetchI3InvestorProfile(yahooSymbol: string): Promise<I3CompanyProfile | null> {
+async function fetchI3InvestorProfile(
+  yahooSymbol: string,
+): Promise<I3CompanyProfile | null> {
   try {
     const code = yahooSymbol.replace(".KL", "");
     if (!code || !/^\d+$/.test(code)) return null;
@@ -256,8 +328,9 @@ async function fetchI3InvestorProfile(yahooSymbol: string): Promise<I3CompanyPro
     const url = `https://klse.i3investor.com/web/stock/profile/${code}`;
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
       },
       signal: AbortSignal.timeout(8000),
     });
@@ -269,25 +342,49 @@ async function fetchI3InvestorProfile(yahooSymbol: string): Promise<I3CompanyPro
     let subsector = "";
     let description = "";
 
-    const sectorMatch = html.match(/Sector:\s*<\/td>\s*<td[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i)
-      || html.match(/Sector:&nbsp;\s*<a[^>]*class="d-none"[^>]*>([\s\S]*?)<\/a>/i)
-      || html.match(/Sector:(?:&nbsp;|\s)*(?:<a[^>]*>[\s\S]*?<\/a>\s*)*([\w\s&\/]+)\s*<\/p>/i);
+    const sectorMatch =
+      html.match(
+        /Sector:\s*<\/td>\s*<td[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i,
+      ) ||
+      html.match(
+        /Sector:&nbsp;\s*<a[^>]*class="d-none"[^>]*>([\s\S]*?)<\/a>/i,
+      ) ||
+      html.match(
+        /Sector:(?:&nbsp;|\s)*(?:<a[^>]*>[\s\S]*?<\/a>\s*)*([\w\s&\/]+)\s*<\/p>/i,
+      );
     if (sectorMatch) {
       sector = sectorMatch[1].replace(/<[^>]*>/g, "").trim();
     }
 
-    const subsectorMatch = html.match(/Subsector:\s*<\/td>\s*<td[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i)
-      || html.match(/Subsector:&nbsp;\s*<a[^>]*class="d-none"[^>]*>([\s\S]*?)<\/a>/i)
-      || html.match(/Subsector:(?:&nbsp;|\s)*(?:<a[^>]*>[\s\S]*?<\/a>\s*)*([\w\s&\/]+)\s*<\/p>/i);
+    const subsectorMatch =
+      html.match(
+        /Subsector:\s*<\/td>\s*<td[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i,
+      ) ||
+      html.match(
+        /Subsector:&nbsp;\s*<a[^>]*class="d-none"[^>]*>([\s\S]*?)<\/a>/i,
+      ) ||
+      html.match(
+        /Subsector:(?:&nbsp;|\s)*(?:<a[^>]*>[\s\S]*?<\/a>\s*)*([\w\s&\/]+)\s*<\/p>/i,
+      );
     if (subsectorMatch) {
       subsector = subsectorMatch[1].replace(/<[^>]*>/g, "").trim();
     }
 
-    const descMatch = html.match(/<h6[^>]*>\s*<strong>\s*Description\s*<\/strong>\s*<\/h6>\s*<p[^>]*>([\s\S]*?)<\/p>/i)
-      || html.match(/<h6[^>]*>\s*Description\s*<\/h6>\s*<p[^>]*>([\s\S]*?)<\/p>/i)
-      || html.match(/<strong>\s*Description\s*<\/strong>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i);
+    const descMatch =
+      html.match(
+        /<h6[^>]*>\s*<strong>\s*Description\s*<\/strong>\s*<\/h6>\s*<p[^>]*>([\s\S]*?)<\/p>/i,
+      ) ||
+      html.match(
+        /<h6[^>]*>\s*Description\s*<\/h6>\s*<p[^>]*>([\s\S]*?)<\/p>/i,
+      ) ||
+      html.match(
+        /<strong>\s*Description\s*<\/strong>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i,
+      );
     if (descMatch) {
-      description = descMatch[1].replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+      description = descMatch[1]
+        .replace(/<[^>]*>/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
     }
 
     if (!sector && !description) return null;
@@ -301,12 +398,14 @@ async function fetchI3InvestorProfile(yahooSymbol: string): Promise<I3CompanyPro
 
 export async function registerRoutes(
   httpServer: Server,
-  app: Express
+  app: Express,
 ): Promise<Server> {
-
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const clientIp = req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.ip || "unknown";
+      const clientIp =
+        req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() ||
+        req.ip ||
+        "unknown";
 
       const ipCheck = await storage.isIpAllowed(clientIp);
       if (!ipCheck.allowed) {
@@ -315,32 +414,61 @@ export async function registerRoutes(
 
       const ipBlocked = await storage.isIpBlocked(clientIp);
       if (ipBlocked) {
-        return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
+        return res
+          .status(403)
+          .json({
+            error:
+              "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock.",
+          });
       }
 
       const { email, password } = req.body;
       if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
+        return res
+          .status(400)
+          .json({ error: "Email and password are required" });
       }
 
       const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
         const result = await storage.recordFailedLogin(clientIp);
         if (result.blocked) {
-          return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
+          return res
+            .status(403)
+            .json({
+              error:
+                "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock.",
+            });
         }
-        return res.status(401).json({ error: `Invalid email or password. ${3 - result.attempts} attempt(s) remaining before your IP is blocked.` });
+        return res
+          .status(401)
+          .json({
+            error: `Invalid email or password. ${3 - result.attempts} attempt(s) remaining before your IP is blocked.`,
+          });
       }
       if (user.disabled) {
-        return res.status(403).json({ error: "Your account has been disabled. Please contact admin." });
+        return res
+          .status(403)
+          .json({
+            error: "Your account has been disabled. Please contact admin.",
+          });
       }
       const valid = await storage.verifyPassword(user, password);
       if (!valid) {
         const result = await storage.recordFailedLogin(clientIp);
         if (result.blocked) {
-          return res.status(403).json({ error: "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock." });
+          return res
+            .status(403)
+            .json({
+              error:
+                "Your IP address has been blocked due to too many failed login attempts. Please contact the admin to unblock.",
+            });
         }
-        return res.status(401).json({ error: `Invalid email or password. ${3 - result.attempts} attempt(s) remaining before your IP is blocked.` });
+        return res
+          .status(401)
+          .json({
+            error: `Invalid email or password. ${3 - result.attempts} attempt(s) remaining before your IP is blocked.`,
+          });
       }
 
       await storage.resetFailedLogins(clientIp);
@@ -405,43 +533,54 @@ export async function registerRoutes(
   app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
     try {
       const users = await storage.getAllUsers();
-      res.json(users.map(u => ({
-        id: u.id,
-        email: u.email,
-        disabled: u.disabled,
-        lastIp: u.lastIp,
-        lastLoginAt: u.lastLoginAt,
-        requestCount: u.requestCount,
-      })));
+      res.json(
+        users.map((u) => ({
+          id: u.id,
+          email: u.email,
+          disabled: u.disabled,
+          lastIp: u.lastIp,
+          lastLoginAt: u.lastLoginAt,
+          requestCount: u.requestCount,
+        })),
+      );
     } catch (error: any) {
       res.status(500).json({ error: "Failed to fetch users" });
     }
   });
 
-  app.patch("/api/admin/users/:id/toggle", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { disabled } = req.body;
-      const user = await storage.toggleUserDisabled(id, disabled);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
+  app.patch(
+    "/api/admin/users/:id/toggle",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { disabled } = req.body;
+        const user = await storage.toggleUserDisabled(id, disabled);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+        res.json({ id: user.id, email: user.email, disabled: user.disabled });
+      } catch (error: any) {
+        res.status(500).json({ error: "Failed to update user" });
       }
-      res.json({ id: user.id, email: user.email, disabled: user.disabled });
-    } catch (error: any) {
-      res.status(500).json({ error: "Failed to update user" });
-    }
-  });
+    },
+  );
 
   app.post("/api/admin/users", requireAuth, requireAdmin, async (req, res) => {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
+        return res
+          .status(400)
+          .json({ error: "Email and password are required" });
       }
 
       const existing = await storage.getUserByEmail(email);
       if (existing) {
-        return res.status(409).json({ error: "User with this email already exists" });
+        return res
+          .status(409)
+          .json({ error: "User with this email already exists" });
       }
 
       const user = await storage.createUser({ email, password });
@@ -451,49 +590,67 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/admin/users/:id", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { email, password } = req.body;
-      const updateData: any = {};
-      if (email) updateData.email = email;
-      if (password) updateData.password = password;
+  app.put(
+    "/api/admin/users/:id",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { email, password } = req.body;
+        const updateData: any = {};
+        if (email) updateData.email = email;
+        if (password) updateData.password = password;
 
-      const user = await storage.updateUser(id, updateData);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        const user = await storage.updateUser(id, updateData);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+        res.json({ id: user.id, email: user.email });
+      } catch (error: any) {
+        res.status(500).json({ error: "Failed to update user" });
       }
-      res.json({ id: user.id, email: user.email });
-    } catch (error: any) {
-      res.status(500).json({ error: "Failed to update user" });
-    }
-  });
+    },
+  );
 
-  app.delete("/api/admin/users/:id", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deleteUser(id);
-      res.json({ ok: true });
-    } catch (error: any) {
-      res.status(500).json({ error: "Failed to delete user" });
-    }
-  });
+  app.delete(
+    "/api/admin/users/:id",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        await storage.deleteUser(id);
+        res.json({ ok: true });
+      } catch (error: any) {
+        res.status(500).json({ error: "Failed to delete user" });
+      }
+    },
+  );
 
-  app.get("/api/admin/analysis-logs", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 100;
-      const logs = await storage.getAnalysisLogs(limit);
-      res.json(logs);
-    } catch (error: any) {
-      res.status(500).json({ error: "Failed to fetch analysis logs" });
-    }
-  });
+  app.get(
+    "/api/admin/analysis-logs",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const limit = parseInt(req.query.limit as string) || 100;
+        const logs = await storage.getAnalysisLogs(limit);
+        res.json(logs);
+      } catch (error: any) {
+        res.status(500).json({ error: "Failed to fetch analysis logs" });
+      }
+    },
+  );
 
   app.get("/api/news/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
       const yahooSymbol = await resolveYahooSymbol(symbol);
-      const isKLSE = symbol.startsWith("KLSE:") || symbol.startsWith("MYX:") || yahooSymbol.endsWith(".KL");
+      const isKLSE =
+        symbol.startsWith("KLSE:") ||
+        symbol.startsWith("MYX:") ||
+        yahooSymbol.endsWith(".KL");
 
       let companyName = "";
       try {
@@ -502,26 +659,40 @@ export async function registerRoutes(
       } catch (e) {}
 
       const cleanName = companyName
-        ? companyName.replace(/\b(Bhd|Berhad|Inc|Ltd|Limited|Corp|Corporation|PLC|Tbk|S\.A\.|AG)\b\.?/gi, "").trim()
+        ? companyName
+            .replace(
+              /\b(Bhd|Berhad|Inc|Ltd|Limited|Corp|Corporation|PLC|Tbk|S\.A\.|AG)\b\.?/gi,
+              "",
+            )
+            .trim()
         : "";
 
       if (isKLSE) {
-        const ticker = symbol.replace("KLSE:", "").replace("MYX:", "").toUpperCase();
+        const ticker = symbol
+          .replace("KLSE:", "")
+          .replace("MYX:", "")
+          .toUpperCase();
         const news = await fetchMalaysiaNews(cleanName || ticker, ticker);
         return res.json(news);
       }
 
       const searchQuery = cleanName || yahooSymbol;
       const searchResult: any = await yahooFinance.search(searchQuery);
-      const news = (searchResult.news || []).slice(0, 8).map((article: any) => ({
-        title: article.title,
-        publisher: article.publisher,
-        link: article.link,
-        publishedAt: article.providerPublishTime
-          ? new Date(typeof article.providerPublishTime === 'number' ? article.providerPublishTime * 1000 : article.providerPublishTime).toISOString()
-          : null,
-        thumbnail: article.thumbnail?.resolutions?.[0]?.url || null,
-      }));
+      const news = (searchResult.news || [])
+        .slice(0, 8)
+        .map((article: any) => ({
+          title: article.title,
+          publisher: article.publisher,
+          link: article.link,
+          publishedAt: article.providerPublishTime
+            ? new Date(
+                typeof article.providerPublishTime === "number"
+                  ? article.providerPublishTime * 1000
+                  : article.providerPublishTime,
+              ).toISOString()
+            : null,
+          thumbnail: article.thumbnail?.resolutions?.[0]?.url || null,
+        }));
       res.json(news);
     } catch (error: any) {
       console.error("News error:", error.message);
@@ -545,7 +716,9 @@ export async function registerRoutes(
       res.json(quotes);
     } catch (error: any) {
       console.error("Search error:", error.message);
-      res.status(500).json({ error: "Failed to search", details: error.message });
+      res
+        .status(500)
+        .json({ error: "Failed to search", details: error.message });
     }
   });
 
@@ -556,15 +729,25 @@ export async function registerRoutes(
       const interval = (req.query.interval as string) || "1d";
       const yahooSymbol = await resolveYahooSymbol(symbol);
 
-      const result: any = await yahooFinance.chart(yahooSymbol, {
-        period1: getStartDate(range),
-        period2: new Date(),
-        interval: interval as any,
-      }, { validateResult: false });
+      const result: any = await yahooFinance.chart(
+        yahooSymbol,
+        {
+          period1: getStartDate(range),
+          period2: new Date(),
+          interval: interval as any,
+        },
+        { validateResult: false },
+      );
 
       const quotes = result.quotes || [];
       const candles = quotes
-        .filter((q: any) => q.open != null && q.close != null && q.high != null && q.low != null)
+        .filter(
+          (q: any) =>
+            q.open != null &&
+            q.close != null &&
+            q.high != null &&
+            q.low != null,
+        )
         .map((q: any) => ({
           time: new Date(q.date).toISOString().split("T")[0],
           open: Number(q.open.toFixed(4)),
@@ -586,7 +769,9 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("Stock data error:", error.message);
-      res.status(500).json({ error: "Failed to fetch stock data", details: error.message });
+      res
+        .status(500)
+        .json({ error: "Failed to fetch stock data", details: error.message });
     }
   });
 
@@ -597,7 +782,12 @@ export async function registerRoutes(
       const quote: any = await yahooFinance.quote(yahooSymbol);
 
       if (!quote || !quote.symbol) {
-        return res.status(404).json({ error: "Stock not found", details: `No quote data available for ${symbol}` });
+        return res
+          .status(404)
+          .json({
+            error: "Stock not found",
+            details: `No quote data available for ${symbol}`,
+          });
       }
 
       res.json({
@@ -620,7 +810,9 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("Quote error:", error.message);
-      res.status(500).json({ error: "Failed to fetch quote", details: error.message });
+      res
+        .status(500)
+        .json({ error: "Failed to fetch quote", details: error.message });
     }
   });
 
@@ -630,109 +822,173 @@ export async function registerRoutes(
     const results: { symbol: string; code: string; name: string }[] = [];
     for (const [name, code] of Object.entries(KLSE_NAME_TO_CODE)) {
       if (name.includes(q) || (code as string).replace(".KL", "").includes(q)) {
-        results.push({ symbol: `KLSE:${name}`, code: (code as string).replace(".KL", ""), name });
+        results.push({
+          symbol: `KLSE:${name}`,
+          code: (code as string).replace(".KL", ""),
+          name,
+        });
       }
       if (results.length >= 20) break;
     }
     res.json(results);
   });
 
-  app.get("/api/admin/settings", requireAuth, requireAdmin, async (_req, res) => {
-    try {
-      const rateLimit = await storage.getSetting("rate_limit_per_hour") || "20";
-      res.json({ rateLimitPerHour: parseInt(rateLimit) });
-    } catch {
-      res.status(500).json({ error: "Failed to fetch settings" });
-    }
-  });
-
-  app.put("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      const { rateLimitPerHour } = req.body;
-      if (typeof rateLimitPerHour !== "number" || rateLimitPerHour < 1 || rateLimitPerHour > 1000) {
-        return res.status(400).json({ error: "Rate limit must be between 1 and 1000" });
+  app.get(
+    "/api/admin/settings",
+    requireAuth,
+    requireAdmin,
+    async (_req, res) => {
+      try {
+        const rateLimit =
+          (await storage.getSetting("rate_limit_per_hour")) || "20";
+        res.json({ rateLimitPerHour: parseInt(rateLimit) });
+      } catch {
+        res.status(500).json({ error: "Failed to fetch settings" });
       }
-      await storage.setSetting("rate_limit_per_hour", String(rateLimitPerHour));
-      console.log(`[SETTINGS] Admin updated rate limit to ${rateLimitPerHour}/hour`);
-      res.json({ ok: true, rateLimitPerHour });
-    } catch {
-      res.status(500).json({ error: "Failed to update settings" });
-    }
-  });
+    },
+  );
 
-  app.get("/api/admin/blocked-ips", requireAuth, requireAdmin, async (_req, res) => {
-    try {
-      const ips = await storage.getBlockedIps();
-      res.json(ips);
-    } catch {
-      res.status(500).json({ error: "Failed to fetch blocked IPs" });
-    }
-  });
-
-  app.delete("/api/admin/blocked-ips/:id", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      await storage.unblockIp(parseInt(req.params.id));
-      res.json({ ok: true });
-    } catch {
-      res.status(500).json({ error: "Failed to unblock IP" });
-    }
-  });
-
-  app.get("/api/admin/ip-rules", requireAuth, requireAdmin, async (_req, res) => {
-    try {
-      const rules = await storage.getIpRules();
-      res.json(rules);
-    } catch {
-      res.status(500).json({ error: "Failed to fetch IP rules" });
-    }
-  });
-
-  app.post("/api/admin/ip-rules", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      const { type, startIp, endIp, description } = req.body;
-      if (!type || !startIp || !endIp) {
-        return res.status(400).json({ error: "Type, start IP, and end IP are required" });
+  app.put(
+    "/api/admin/settings",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { rateLimitPerHour } = req.body;
+        if (
+          typeof rateLimitPerHour !== "number" ||
+          rateLimitPerHour < 1 ||
+          rateLimitPerHour > 1000
+        ) {
+          return res
+            .status(400)
+            .json({ error: "Rate limit must be between 1 and 1000" });
+        }
+        await storage.setSetting(
+          "rate_limit_per_hour",
+          String(rateLimitPerHour),
+        );
+        console.log(
+          `[SETTINGS] Admin updated rate limit to ${rateLimitPerHour}/hour`,
+        );
+        res.json({ ok: true, rateLimitPerHour });
+      } catch {
+        res.status(500).json({ error: "Failed to update settings" });
       }
-      if (type !== "block" && type !== "whitelist") {
-        return res.status(400).json({ error: "Type must be 'block' or 'whitelist'" });
-      }
-      const ipRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-      if (!ipRegex.test(startIp) || !ipRegex.test(endIp)) {
-        return res.status(400).json({ error: "Invalid IP address format" });
-      }
-      const rule = await storage.addIpRule(type, startIp, endIp, description);
-      res.json(rule);
-    } catch {
-      res.status(500).json({ error: "Failed to add IP rule" });
-    }
-  });
+    },
+  );
 
-  app.delete("/api/admin/ip-rules/:id", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      await storage.deleteIpRule(parseInt(req.params.id));
-      res.json({ ok: true });
-    } catch {
-      res.status(500).json({ error: "Failed to delete IP rule" });
-    }
-  });
+  app.get(
+    "/api/admin/blocked-ips",
+    requireAuth,
+    requireAdmin,
+    async (_req, res) => {
+      try {
+        const ips = await storage.getBlockedIps();
+        res.json(ips);
+      } catch {
+        res.status(500).json({ error: "Failed to fetch blocked IPs" });
+      }
+    },
+  );
+
+  app.delete(
+    "/api/admin/blocked-ips/:id",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        await storage.unblockIp(parseInt(req.params.id));
+        res.json({ ok: true });
+      } catch {
+        res.status(500).json({ error: "Failed to unblock IP" });
+      }
+    },
+  );
+
+  app.get(
+    "/api/admin/ip-rules",
+    requireAuth,
+    requireAdmin,
+    async (_req, res) => {
+      try {
+        const rules = await storage.getIpRules();
+        res.json(rules);
+      } catch {
+        res.status(500).json({ error: "Failed to fetch IP rules" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/ip-rules",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { type, startIp, endIp, description } = req.body;
+        if (!type || !startIp || !endIp) {
+          return res
+            .status(400)
+            .json({ error: "Type, start IP, and end IP are required" });
+        }
+        if (type !== "block" && type !== "whitelist") {
+          return res
+            .status(400)
+            .json({ error: "Type must be 'block' or 'whitelist'" });
+        }
+        const ipRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+        if (!ipRegex.test(startIp) || !ipRegex.test(endIp)) {
+          return res.status(400).json({ error: "Invalid IP address format" });
+        }
+        const rule = await storage.addIpRule(type, startIp, endIp, description);
+        res.json(rule);
+      } catch {
+        res.status(500).json({ error: "Failed to add IP rule" });
+      }
+    },
+  );
+
+  app.delete(
+    "/api/admin/ip-rules/:id",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        await storage.deleteIpRule(parseInt(req.params.id));
+        res.json({ ok: true });
+      } catch {
+        res.status(500).json({ error: "Failed to delete IP rule" });
+      }
+    },
+  );
 
   app.post("/api/analysis", requireAuth, async (req, res) => {
     try {
       const { symbol, candles, quote, lang } = req.body;
 
       if (!symbol || !candles || candles.length === 0) {
-        return res.status(400).json({ error: "Symbol and candle data are required" });
+        return res
+          .status(400)
+          .json({ error: "Symbol and candle data are required" });
       }
 
       const userEmail = req.session.email || "admin";
-      const userIp = req.headers["x-forwarded-for"] as string || req.socket.remoteAddress || null;
+      const userIp =
+        (req.headers["x-forwarded-for"] as string) ||
+        req.socket.remoteAddress ||
+        null;
 
       if (userEmail !== "admin") {
-        const rateLimitStr = await storage.getSetting("rate_limit_per_hour") || "20";
+        const rateLimitStr =
+          (await storage.getSetting("rate_limit_per_hour")) || "20";
         const maxRequestsPerHour = parseInt(rateLimitStr);
-        const recentCount = await storage.getUserRequestCountLastHour(userEmail);
+        const recentCount =
+          await storage.getUserRequestCountLastHour(userEmail);
         if (recentCount >= maxRequestsPerHour) {
-          console.log(`[RATE LIMIT] ${userEmail} blocked - ${recentCount}/${maxRequestsPerHour} requests in last hour for symbol: ${symbol}`);
+          console.log(
+            `[RATE LIMIT] ${userEmail} blocked - ${recentCount}/${maxRequestsPerHour} requests in last hour for symbol: ${symbol}`,
+          );
           return res.status(429).json({
             error: "Rate limit exceeded",
             message: `You have reached the maximum of ${maxRequestsPerHour} AI analysis requests per hour. Please try again later.`,
@@ -742,7 +998,9 @@ export async function registerRoutes(
       }
 
       await storage.logAnalysisRequest(userEmail, symbol, userIp);
-      console.log(`[ANALYSIS] ${userEmail} requested analysis for ${symbol} from IP ${userIp}`);
+      console.log(
+        `[ANALYSIS] ${userEmail} requested analysis for ${symbol} from IP ${userIp}`,
+      );
 
       if (req.session.userId && req.session.userId !== "admin") {
         await storage.incrementRequestCount(req.session.userId);
@@ -750,11 +1008,15 @@ export async function registerRoutes(
 
       const recentCandles = candles.slice(-60);
 
-      const priceData = recentCandles.map((c: any) =>
-        `${c.time}: O=${c.open} H=${c.high} L=${c.low} C=${c.close} V=${c.volume}`
-      ).join("\n");
+      const priceData = recentCandles
+        .map(
+          (c: any) =>
+            `${c.time}: O=${c.open} H=${c.high} L=${c.low} C=${c.close} V=${c.volume}`,
+        )
+        .join("\n");
 
-      const quoteInfo = quote ? `
+      const quoteInfo = quote
+        ? `
 Current Price: ${quote.price} ${quote.currency || ""}
 Change: ${quote.change} (${quote.changePercent?.toFixed(2)}%)
 Volume: ${quote.volume}
@@ -765,9 +1027,14 @@ Dividend Yield: ${quote.dividendYield ? (quote.dividendYield * 100).toFixed(2) +
 52-Week High: ${quote.fiftyTwoWeekHigh}
 52-Week Low: ${quote.fiftyTwoWeekLow}
 Market State: ${quote.marketState}
-` : "";
+`
+        : "";
 
-      const isKLSE = symbol.startsWith("KLSE:") || symbol.startsWith("MYX:") || quote?.exchange === "KLS" || quote?.currency === "MYR";
+      const isKLSE =
+        symbol.startsWith("KLSE:") ||
+        symbol.startsWith("MYX:") ||
+        quote?.exchange === "KLS" ||
+        quote?.currency === "MYR";
       const companyName = quote?.name || symbol;
 
       let i3Profile: I3CompanyProfile | null = null;
@@ -841,18 +1108,21 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
       const aiConfig = getAIProvider();
 
       if (aiConfig.type === "anthropic") {
-        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+        const anthropic = new Anthropic({
+          apiKey: process.env.ANTHROPIC_API_KEY!,
+        });
         const response = await anthropic.messages.create({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1500,
           temperature: 0.3,
           messages: [{ role: "user", content: prompt }],
         });
-        content = response.content[0].type === "text" ? response.content[0].text : "{}";
+        content =
+          response.content[0].type === "text" ? response.content[0].text : "{}";
       } else if (aiConfig.type === "openai") {
         const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
         const response = await client.chat.completions.create({
-          model: "gpt-4o",
+          model: "gpt-5.2",
           messages: [{ role: "user", content: prompt }],
           max_completion_tokens: 1500,
           temperature: 0.3,
@@ -870,7 +1140,10 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
 
       let analysis;
       try {
-        const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        const cleaned = content
+          .replace(/```json\n?/g, "")
+          .replace(/```\n?/g, "")
+          .trim();
         analysis = JSON.parse(cleaned);
       } catch {
         analysis = {
@@ -901,39 +1174,266 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
       res.json(analysis);
     } catch (error: any) {
       console.error("Analysis error:", error.message);
-      res.status(500).json({ error: "Failed to generate analysis", details: error.message });
+      res
+        .status(500)
+        .json({ error: "Failed to generate analysis", details: error.message });
     }
   });
 
   const US_STOCKS = [
-    "AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","BRK-B","JPM","V",
-    "UNH","MA","HD","PG","JNJ","ABBV","XOM","BAC","KO","MRK",
-    "PEP","AVGO","COST","LLY","TMO","CSCO","MCD","WMT","ABT","CRM",
-    "ACN","DHR","TXN","NKE","NEE","PM","UPS","ORCL","INTC","AMD",
-    "QCOM","LOW","AMAT","GS","CAT","BA","SBUX","GE","ISRG","BLK",
-    "MDT","ADP","AMGN","GILD","SYK","DE","ADI","LRCX","REGN","BKNG",
-    "PYPL","MDLZ","CB","VRTX","TMUS","CI","SO","ZTS","PANW","MMC",
-    "KLAC","PLD","CME","SNPS","CDNS","APH","MCO","FI","SHW","ITW",
-    "NFLX","DIS","NOW","ABNB","COIN","UBER","PLTR","SQ","SNOW","SHOP",
-    "MELI","CRWD","DDOG","NET","ZS","MDB","RIVN","LCID","SOFI","RBLX"
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "NVDA",
+    "META",
+    "TSLA",
+    "BRK-B",
+    "JPM",
+    "V",
+    "UNH",
+    "MA",
+    "HD",
+    "PG",
+    "JNJ",
+    "ABBV",
+    "XOM",
+    "BAC",
+    "KO",
+    "MRK",
+    "PEP",
+    "AVGO",
+    "COST",
+    "LLY",
+    "TMO",
+    "CSCO",
+    "MCD",
+    "WMT",
+    "ABT",
+    "CRM",
+    "ACN",
+    "DHR",
+    "TXN",
+    "NKE",
+    "NEE",
+    "PM",
+    "UPS",
+    "ORCL",
+    "INTC",
+    "AMD",
+    "QCOM",
+    "LOW",
+    "AMAT",
+    "GS",
+    "CAT",
+    "BA",
+    "SBUX",
+    "GE",
+    "ISRG",
+    "BLK",
+    "MDT",
+    "ADP",
+    "AMGN",
+    "GILD",
+    "SYK",
+    "DE",
+    "ADI",
+    "LRCX",
+    "REGN",
+    "BKNG",
+    "PYPL",
+    "MDLZ",
+    "CB",
+    "VRTX",
+    "TMUS",
+    "CI",
+    "SO",
+    "ZTS",
+    "PANW",
+    "MMC",
+    "KLAC",
+    "PLD",
+    "CME",
+    "SNPS",
+    "CDNS",
+    "APH",
+    "MCO",
+    "FI",
+    "SHW",
+    "ITW",
+    "NFLX",
+    "DIS",
+    "NOW",
+    "ABNB",
+    "COIN",
+    "UBER",
+    "PLTR",
+    "SQ",
+    "SNOW",
+    "SHOP",
+    "MELI",
+    "CRWD",
+    "DDOG",
+    "NET",
+    "ZS",
+    "MDB",
+    "RIVN",
+    "LCID",
+    "SOFI",
+    "RBLX",
   ];
 
   const MY_STOCKS = [
-    "1155.KL","1295.KL","1023.KL","5347.KL","5225.KL","8869.KL","5819.KL","5285.KL","5211.KL","6947.KL",
-    "6033.KL","3816.KL","1066.KL","5326.KL","6012.KL","4863.KL","5183.KL","6742.KL","4707.KL","1082.KL",
-    "1961.KL","5398.KL","4677.KL","2445.KL","1015.KL","6888.KL","5246.KL","5681.KL","2089.KL","5249.KL",
-    "5296.KL","4197.KL","4065.KL","7084.KL","5227.KL","5878.KL","3794.KL","4715.KL","3182.KL","5031.KL",
-    "5288.KL","7277.KL","3336.KL","5176.KL","5337.KL","2429.KL","5263.KL","2488.KL","0097.KL","5273.KL",
-    "5212.KL","1899.KL","3034.KL","3255.KL","1818.KL","8206.KL","5185.KL","7293.KL","5238.KL","0128.KL",
-    "0138.KL","3867.KL","8621.KL","4731.KL","1171.KL","5209.KL","3301.KL","0166.KL","5258.KL","2836.KL",
-    "5306.KL","5053.KL","5309.KL","5200.KL","5606.KL","5005.KL","8664.KL","7113.KL","5292.KL","2291.KL",
-    "0208.KL","4006.KL","5106.KL","5264.KL","5323.KL","5340.KL","0151.KL","5038.KL","5126.KL","7161.KL",
-    "5148.KL","5151.KL","5401.KL","5168.KL","8583.KL","5139.KL","6139.KL","3069.KL","0318.KL","5236.KL",
-    "0338.KL","6633.KL","5286.KL","5099.KL","5243.KL","7153.KL","5032.KL","5318.KL","5000.KL","7172.KL",
-    "0225.KL","1619.KL","4456.KL","6599.KL","0048.KL","7237.KL","7204.KL","5113.KL","5141.KL","5284.KL",
-    "7248.KL","8273.KL","5135.KL","5301.KL","5213.KL","5280.KL","0233.KL","6459.KL","5088.KL","5248.KL",
-    "7233.KL","7095.KL","0162.KL","7160.KL","5199.KL","3689.KL","6399.KL","4162.KL","5085.KL","5219.KL",
-    "0388.KL","3026.KL","5024.KL","7231.KL","7100.KL","5271.KL","6262.KL","3611.KL","0375.KL","5078.KL"
+    "1155.KL",
+    "1295.KL",
+    "1023.KL",
+    "5347.KL",
+    "5225.KL",
+    "8869.KL",
+    "5819.KL",
+    "5285.KL",
+    "5211.KL",
+    "6947.KL",
+    "6033.KL",
+    "3816.KL",
+    "1066.KL",
+    "5326.KL",
+    "6012.KL",
+    "4863.KL",
+    "5183.KL",
+    "6742.KL",
+    "4707.KL",
+    "1082.KL",
+    "1961.KL",
+    "5398.KL",
+    "4677.KL",
+    "2445.KL",
+    "1015.KL",
+    "6888.KL",
+    "5246.KL",
+    "5681.KL",
+    "2089.KL",
+    "5249.KL",
+    "5296.KL",
+    "4197.KL",
+    "4065.KL",
+    "7084.KL",
+    "5227.KL",
+    "5878.KL",
+    "3794.KL",
+    "4715.KL",
+    "3182.KL",
+    "5031.KL",
+    "5288.KL",
+    "7277.KL",
+    "3336.KL",
+    "5176.KL",
+    "5337.KL",
+    "2429.KL",
+    "5263.KL",
+    "2488.KL",
+    "0097.KL",
+    "5273.KL",
+    "5212.KL",
+    "1899.KL",
+    "3034.KL",
+    "3255.KL",
+    "1818.KL",
+    "8206.KL",
+    "5185.KL",
+    "7293.KL",
+    "5238.KL",
+    "0128.KL",
+    "0138.KL",
+    "3867.KL",
+    "8621.KL",
+    "4731.KL",
+    "1171.KL",
+    "5209.KL",
+    "3301.KL",
+    "0166.KL",
+    "5258.KL",
+    "2836.KL",
+    "5306.KL",
+    "5053.KL",
+    "5309.KL",
+    "5200.KL",
+    "5606.KL",
+    "5005.KL",
+    "8664.KL",
+    "7113.KL",
+    "5292.KL",
+    "2291.KL",
+    "0208.KL",
+    "4006.KL",
+    "5106.KL",
+    "5264.KL",
+    "5323.KL",
+    "5340.KL",
+    "0151.KL",
+    "5038.KL",
+    "5126.KL",
+    "7161.KL",
+    "5148.KL",
+    "5151.KL",
+    "5401.KL",
+    "5168.KL",
+    "8583.KL",
+    "5139.KL",
+    "6139.KL",
+    "3069.KL",
+    "0318.KL",
+    "5236.KL",
+    "0338.KL",
+    "6633.KL",
+    "5286.KL",
+    "5099.KL",
+    "5243.KL",
+    "7153.KL",
+    "5032.KL",
+    "5318.KL",
+    "5000.KL",
+    "7172.KL",
+    "0225.KL",
+    "1619.KL",
+    "4456.KL",
+    "6599.KL",
+    "0048.KL",
+    "7237.KL",
+    "7204.KL",
+    "5113.KL",
+    "5141.KL",
+    "5284.KL",
+    "7248.KL",
+    "8273.KL",
+    "5135.KL",
+    "5301.KL",
+    "5213.KL",
+    "5280.KL",
+    "0233.KL",
+    "6459.KL",
+    "5088.KL",
+    "5248.KL",
+    "7233.KL",
+    "7095.KL",
+    "0162.KL",
+    "7160.KL",
+    "5199.KL",
+    "3689.KL",
+    "6399.KL",
+    "4162.KL",
+    "5085.KL",
+    "5219.KL",
+    "0388.KL",
+    "3026.KL",
+    "5024.KL",
+    "7231.KL",
+    "7100.KL",
+    "5271.KL",
+    "6262.KL",
+    "3611.KL",
+    "0375.KL",
+    "5078.KL",
   ];
 
   const scanCache = new Map<string, { data: any[]; timestamp: number }>();
@@ -985,10 +1485,23 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
       const symbols = market === "MY" ? MY_STOCKS : US_STOCKS;
       const results: any[] = [];
       const batchSize = 10;
-      const needsChart = type === "breakout" || criteria.some(c =>
-        ["above_ema5", "above_ema20", "above_sma200", "ema20_above_sma200", "ema20_cross_sma200"].includes(c)
-      );
-      const chartDays = criteria.includes("above_sma200") || criteria.includes("ema20_above_sma200") || criteria.includes("ema20_cross_sma200") ? 400 : 45;
+      const needsChart =
+        type === "breakout" ||
+        criteria.some((c) =>
+          [
+            "above_ema5",
+            "above_ema20",
+            "above_sma200",
+            "ema20_above_sma200",
+            "ema20_cross_sma200",
+          ].includes(c),
+        );
+      const chartDays =
+        criteria.includes("above_sma200") ||
+        criteria.includes("ema20_above_sma200") ||
+        criteria.includes("ema20_cross_sma200")
+          ? 400
+          : 45;
 
       for (let i = 0; i < symbols.length; i += batchSize) {
         const batch = symbols.slice(i, i + batchSize);
@@ -996,14 +1509,23 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
           try {
             const quotePromise = yahooFinance.quote(sym);
             const chartPromise = needsChart
-              ? yahooFinance.chart(sym, {
-                  period1: new Date(Date.now() - chartDays * 24 * 60 * 60 * 1000),
-                  period2: new Date(),
-                  interval: "1d" as any,
-                }, { validateResult: false })
+              ? yahooFinance.chart(
+                  sym,
+                  {
+                    period1: new Date(
+                      Date.now() - chartDays * 24 * 60 * 60 * 1000,
+                    ),
+                    period2: new Date(),
+                    interval: "1d" as any,
+                  },
+                  { validateResult: false },
+                )
               : Promise.resolve(null);
 
-            const [quote, chart]: any[] = await Promise.all([quotePromise, chartPromise]);
+            const [quote, chart]: any[] = await Promise.all([
+              quotePromise,
+              chartPromise,
+            ]);
             if (!quote || !quote.regularMarketPrice) return null;
 
             const currentPrice = quote.regularMarketPrice;
@@ -1012,13 +1534,16 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
 
             if (type === "ath") {
               if (!quote.fiftyTwoWeekHigh) return null;
-              const pctFromHigh = ((quote.fiftyTwoWeekHigh - currentPrice) / quote.fiftyTwoWeekHigh) * 100;
+              const pctFromHigh =
+                ((quote.fiftyTwoWeekHigh - currentPrice) /
+                  quote.fiftyTwoWeekHigh) *
+                100;
               if (pctFromHigh <= 3) {
                 matched = true;
                 reasons.push(
                   pctFromHigh < 0.5
                     ? `New 52-week high at ${currentPrice.toFixed(2)}`
-                    : `${pctFromHigh.toFixed(1)}% from 52-week high (${quote.fiftyTwoWeekHigh.toFixed(2)})`
+                    : `${pctFromHigh.toFixed(1)}% from 52-week high (${quote.fiftyTwoWeekHigh.toFixed(2)})`,
                 );
               } else {
                 return null;
@@ -1026,15 +1551,17 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
             }
 
             const candles = chart
-              ? (chart.quotes || []).filter((c: any) => c.close != null && c.high != null)
+              ? (chart.quotes || []).filter(
+                  (c: any) => c.close != null && c.high != null,
+                )
               : [];
             const closes = candles.map((c: any) => c.close);
 
             if (type === "breakout") {
               let breakoutMatched = false;
 
-              const hasBreakoutCriteria = criteria.some(c =>
-                ["above_5_candles", "above_10day", "above_3day"].includes(c)
+              const hasBreakoutCriteria = criteria.some((c) =>
+                ["above_5_candles", "above_10day", "above_3day"].includes(c),
               );
 
               if (!hasBreakoutCriteria) {
@@ -1047,9 +1574,17 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
                     for (const candle of recent) {
                       if (candle.high > high20) {
                         breakoutMatched = true;
-                        const pct = ((candle.high - high20) / high20 * 100).toFixed(1);
-                        const dt = new Date(candle.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                        reasons.push(`Broke 20-day high (${high20.toFixed(2)}) by ${pct}% on ${dt}`);
+                        const pct = (
+                          ((candle.high - high20) / high20) *
+                          100
+                        ).toFixed(1);
+                        const dt = new Date(candle.date).toLocaleDateString(
+                          "en-US",
+                          { month: "short", day: "numeric" },
+                        );
+                        reasons.push(
+                          `Broke 20-day high (${high20.toFixed(2)}) by ${pct}% on ${dt}`,
+                        );
                         break;
                       }
                     }
@@ -1058,16 +1593,22 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
               }
 
               if (criteria.includes("above_5_candles") && candles.length >= 6) {
-                const last5Highs = candles.slice(-6, -1).map((c: any) => c.high);
+                const last5Highs = candles
+                  .slice(-6, -1)
+                  .map((c: any) => c.high);
                 const maxHigh5 = Math.max(...last5Highs);
                 if (currentPrice > maxHigh5) {
                   breakoutMatched = true;
-                  reasons.push(`Above last 5 candle highs (${maxHigh5.toFixed(2)})`);
+                  reasons.push(
+                    `Above last 5 candle highs (${maxHigh5.toFixed(2)})`,
+                  );
                 }
               }
 
               if (criteria.includes("above_10day") && candles.length >= 11) {
-                const last10Highs = candles.slice(-11, -1).map((c: any) => c.high);
+                const last10Highs = candles
+                  .slice(-11, -1)
+                  .map((c: any) => c.high);
                 const maxHigh10 = Math.max(...last10Highs);
                 if (currentPrice > maxHigh10) {
                   breakoutMatched = true;
@@ -1076,7 +1617,9 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
               }
 
               if (criteria.includes("above_3day") && candles.length >= 4) {
-                const last3Highs = candles.slice(-4, -1).map((c: any) => c.high);
+                const last3Highs = candles
+                  .slice(-4, -1)
+                  .map((c: any) => c.high);
                 const maxHigh3 = Math.max(...last3Highs);
                 if (currentPrice > maxHigh3) {
                   breakoutMatched = true;
@@ -1124,7 +1667,9 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
               const sma200 = calcSMA(closes, 200);
               if (!ema20 || !sma200) return null;
               if (ema20 > sma200) {
-                reasons.push(`EMA20 (${ema20.toFixed(2)}) above SMA200 (${sma200.toFixed(2)})`);
+                reasons.push(
+                  `EMA20 (${ema20.toFixed(2)}) above SMA200 (${sma200.toFixed(2)})`,
+                );
               } else {
                 return null;
               }
@@ -1142,19 +1687,28 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
                   const smaAtIdx = calcSMA(closes.slice(0, idx + 1), 200);
                   const smaAtPrev = calcSMA(closes.slice(0, idx), 200);
                   if (!smaAtIdx || !smaAtPrev) continue;
-                  if (ema20Series[prevIdx] <= smaAtPrev && ema20Series[idx] > smaAtIdx) return true;
+                  if (
+                    ema20Series[prevIdx] <= smaAtPrev &&
+                    ema20Series[idx] > smaAtIdx
+                  )
+                    return true;
                 }
                 return false;
               })();
 
               if (crossedUp5d) {
-                reasons.push(`EMA20 crossed above SMA200 (recent golden cross)`);
+                reasons.push(
+                  `EMA20 crossed above SMA200 (recent golden cross)`,
+                );
               } else {
                 return null;
               }
             }
 
-            if (type === "ath" && reasons.length > 0 || type === "breakout" && matched) {
+            if (
+              (type === "ath" && reasons.length > 0) ||
+              (type === "breakout" && matched)
+            ) {
               return {
                 symbol: quote.symbol,
                 name: quote.shortName || quote.longName || quote.symbol,
@@ -1178,11 +1732,13 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
         results.push(...batchResults.filter(Boolean));
 
         if (i + batchSize < symbols.length) {
-          await new Promise(r => setTimeout(r, 300));
+          await new Promise((r) => setTimeout(r, 300));
         }
       }
 
-      results.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+      results.sort(
+        (a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent),
+      );
 
       scanCache.set(cacheKey, { data: results, timestamp: Date.now() });
       res.json(results);
