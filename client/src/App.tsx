@@ -11,6 +11,7 @@ import Login from "@/pages/Login";
 import AdminConfig from "@/pages/AdminConfig";
 import Scanner from "@/pages/Scanner";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { authenticated, loading } = useAuth();
@@ -41,7 +42,25 @@ function AppRoutes() {
   );
 }
 
+function useScreenshotProtection() {
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const root = document.getElementById("root");
+      if (!root) return;
+      if (document.hidden) {
+        root.style.filter = "blur(20px)";
+        root.style.transition = "filter 0.1s";
+      } else {
+        root.style.filter = "";
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+}
+
 function App() {
+  useScreenshotProtection();
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlignLeft, BrainCircuit, Loader2, Info } from "lucide-react";
 import { AIResponseFooter } from "./PromotionalMessage";
+import { ShareAnalysisButton } from "./ShareAnalysis";
 import { useI18n } from "@/lib/i18n";
 
 interface AnalysisData {
@@ -241,8 +242,14 @@ export function AnalysisPanel({
             </div>
           )}
 
-          <div className="pt-2">
+          <div className="pt-2 flex items-center justify-between">
             <AIResponseFooter />
+            <ShareAnalysisButton
+              symbol={symbol}
+              currentPrice={currentPrice}
+              analysis={analysis}
+              currency={currency}
+            />
           </div>
         </CardContent>
       </Card>
