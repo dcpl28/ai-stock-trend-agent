@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,6 +11,8 @@ import Login from "@/pages/Login";
 import AdminConfig from "@/pages/AdminConfig";
 import Scanner from "@/pages/Scanner";
 import { Loader2 } from "lucide-react";
+
+const BASE_PATH = import.meta.env.PROD ? "/ai-terminal" : "";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { authenticated, loading } = useAuth();
@@ -30,7 +32,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function Router() {
+function AppRoutes() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
@@ -48,9 +50,11 @@ function App() {
         <Toaster />
         <I18nProvider>
           <AuthProvider>
-            <AuthGate>
-              <Router />
-            </AuthGate>
+            <Router base={BASE_PATH}>
+              <AuthGate>
+                <AppRoutes />
+              </AuthGate>
+            </Router>
           </AuthProvider>
         </I18nProvider>
       </TooltipProvider>

@@ -62,9 +62,11 @@ Pre-built integration modules provided by Replit:
 
 3. **Yahoo Finance symbol resolution**: Custom logic maps exchange prefixes (KLSE:, MYX:, NASDAQ:, NYSE:) to Yahoo Finance ticker format, with search fallback for Malaysian stocks.
 
-4. **Authentication system**: Session-based auth with 15-minute auto-expiry. Admin logs in with ADMIN_PASSWORD secret to manage allowed users via /admin config page. Users log in with email/password (bcrypt hashed). The /api/analysis endpoint is protected behind auth. Stock data and charts are viewable by all, but AI analysis requires login.
+4. **Authentication system**: Session-based auth with 15-minute auto-expiry. Admin logs in with ADMIN_PASSWORD secret to manage allowed users via /admin config page. Users log in with email/password (bcryptjs hashed). The /api/analysis endpoint is protected behind auth. Stock data and charts are viewable by all, but AI analysis requires login.
 
-5. **Password security**: User passwords are hashed with bcrypt (10 salt rounds) before storage. Admin password is read from ADMIN_PASSWORD environment secret (required).
+5. **Password security**: User passwords are hashed with bcryptjs (10 salt rounds) before storage. Admin password is read from ADMIN_PASSWORD environment secret (required).
+
+6. **Base path & domain**: In production, the app is served under `/ai-terminal` base path (dexterchia.com/ai-terminal). Requests to `*.replit.app` are redirected to `dexterchia.com`. Legacy paths (`/scanner`, `/admin`) redirect to `/ai-terminal/scanner`, `/ai-terminal/admin`. Wouter Router uses `base="/ai-terminal"` in production, empty in dev.
 
 ## External Dependencies
 
