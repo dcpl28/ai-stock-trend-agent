@@ -16,7 +16,7 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath, { index: false }));
 
-  app.get(`${BASE_PATH}/*`, (_req, res) => {
+  app.get(`${BASE_PATH}/{*path}`, (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 
