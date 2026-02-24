@@ -13,6 +13,7 @@ interface AuthContextType extends AuthState {
   adminLogin: (password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
+  timeLeft: number;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -26,7 +27,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading: true,
   });
 
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [timeLeft, setTimeLeft] = useState(0);
 
   const checkSession = useCallback(async () => {
     try {
@@ -39,9 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         remainingMs: data.remainingMs || 0,
         loading: false,
       });
-      if (!data.authenticated && timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
+      setTimeLeft(data.remainingMs || 0);
+      if (!data.authenticated && pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
       }
     } catch {
       setState(prev => ({ ...prev, authenticated: false, loading: false }));
@@ -52,9 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleAuthExpired = () => checkSession();
     window.addEventListener('auth:expired', handleAuthExpired);
     checkSession();
-    timerRef.current = setInterval(checkSession, 30000);
+    pollRef.current = setInterval(checkSession, 30000);
+    countdownRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 0) return 0;
+        return prev - 1000;
+      });
+    }, 1000);
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
       window.removeEventListener('auth:expired', handleAuthExpired);
     };
   }, [checkSession]);
@@ -97,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, adminLogin, logout, checkSession }}>
+    <AuthContext.Provider value={{ ...state, login, adminLogin, logout, checkSession, timeLeft }}>
       {children}
     </AuthContext.Provider>
   );

@@ -85,29 +85,10 @@ export default function Dashboard() {
   const [symbol, setSymbol] = useState(initialSymbol);
   const [searchInput, setSearchInput] = useState("");
   const [analysisRequested, setAnalysisRequested] = useState(false);
-  const { email, isAdmin, remainingMs, logout, checkSession } = useAuth();
+  const { email, isAdmin, logout, checkSession, timeLeft } = useAuth();
   const { t, lang } = useI18n();
   const [, navigate] = useLocation();
-  const [timeLeft, setTimeLeft] = useState(remainingMs);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    setTimeLeft(remainingMs);
-  }, [remainingMs]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        const next = prev - 1000;
-        if (next <= 0) {
-          checkSession();
-          return 0;
-        }
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [checkSession]);
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
