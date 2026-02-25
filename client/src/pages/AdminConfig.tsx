@@ -62,6 +62,7 @@ export default function AdminConfig() {
   const [logPage, setLogPage] = useState(1);
   const LOGS_PER_PAGE = 20;
   const [userPage, setUserPage] = useState(1);
+  const [userSearch, setUserSearch] = useState("");
   const USERS_PER_PAGE = 10;
   const [rateLimit, setRateLimit] = useState(20);
   const [rateLimitInput, setRateLimitInput] = useState("20");
@@ -76,8 +77,21 @@ export default function AdminConfig() {
   const [newRuleDesc, setNewRuleDesc] = useState("");
   const [addingRule, setAddingRule] = useState(false);
 
-  const totalUserPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
-  const paginatedUsers = users.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
+  const filteredUsers = useMemo(() => {
+    if (!userSearch.trim()) return users;
+    const search = userSearch.toLowerCase();
+    return users.filter(u =>
+      u.email.toLowerCase().includes(search) ||
+      (u.lastIp && u.lastIp.includes(search))
+    );
+  }, [users, userSearch]);
+
+  useEffect(() => {
+    setUserPage(1);
+  }, [userSearch]);
+
+  const totalUserPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+  const paginatedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
 
   const filteredLogs = useMemo(() => {
     return analysisLogs.filter(log => {
@@ -396,10 +410,23 @@ export default function AdminConfig() {
         </div>
 
         <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
-          <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
-            <Users className="w-3.5 h-3.5 text-primary" />
-            {t("allowedUsers")} ({users.length})
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <Users className="w-3.5 h-3.5 text-primary" />
+              {t("allowedUsers")} ({filteredUsers.length}{userSearch ? ` / ${users.length}` : ""})
+            </h2>
+          </div>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+            <Input
+              type="text"
+              placeholder={t("searchUsers")}
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              className="pl-9 h-9 bg-background/30 border-white/[0.06] focus-visible:border-primary/50 text-foreground text-sm"
+              data-testid="input-search-users"
+            />
+          </div>
           {loading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
