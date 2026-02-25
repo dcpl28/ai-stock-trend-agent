@@ -1029,7 +1029,100 @@ export async function registerRoutes(
         await storage.incrementRequestCount(req.session.userId);
       }
 
-      const recentCandles = candles.slice(-60);
+      const recentCandles = candles.slice(-120);
+      const closes = recentCandles.map((c: any) => parseFloat(c.close));
+      const volumes = recentCandles.map((c: any) => parseFloat(c.volume));
+      const highs = recentCandles.map((c: any) => parseFloat(c.high));
+      const lows = recentCandles.map((c: any) => parseFloat(c.low));
+
+      const calcSMA = (data: number[], period: number) => {
+        if (data.length < period) return null;
+        const slice = data.slice(-period);
+        return slice.reduce((a, b) => a + b, 0) / period;
+      };
+
+      const calcEMA = (data: number[], period: number) => {
+        if (data.length < period) return null;
+        const k = 2 / (period + 1);
+        let ema = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+        for (let i = period; i < data.length; i++) {
+          ema = data[i] * k + ema * (1 - k);
+        }
+        return ema;
+      };
+
+      const calcRSI = (data: number[], period: number = 14) => {
+        if (data.length < period + 1) return null;
+        let gains = 0, losses = 0;
+        for (let i = data.length - period; i < data.length; i++) {
+          const diff = data[i] - data[i - 1];
+          if (diff > 0) gains += diff;
+          else losses -= diff;
+        }
+        const avgGain = gains / period;
+        const avgLoss = losses / period;
+        if (avgLoss === 0) return 100;
+        const rs = avgGain / avgLoss;
+        return 100 - 100 / (1 + rs);
+      };
+
+      const calcMACD = (data: number[]) => {
+        const ema12 = calcEMA(data, 12);
+        const ema26 = calcEMA(data, 26);
+        if (ema12 === null || ema26 === null) return null;
+        return ema12 - ema26;
+      };
+
+      const sma5 = calcSMA(closes, 5);
+      const sma10 = calcSMA(closes, 10);
+      const sma20 = calcSMA(closes, 20);
+      const sma50 = calcSMA(closes, 50);
+      const sma100 = calcSMA(closes, 100);
+      const ema12 = calcEMA(closes, 12);
+      const ema26 = calcEMA(closes, 26);
+      const rsi14 = calcRSI(closes, 14);
+      const macdValue = calcMACD(closes);
+
+      const avgVol20 = calcSMA(volumes, 20);
+      const currentVol = volumes[volumes.length - 1];
+      const volRatio = avgVol20 ? (currentVol / avgVol20) : null;
+
+      const high20 = Math.max(...highs.slice(-20));
+      const low20 = Math.min(...lows.slice(-20));
+      const high52 = Math.max(...highs);
+      const low52 = Math.min(...lows);
+      const currentPrice = closes[closes.length - 1];
+      const priceRange52Pct = high52 !== low52 ? ((currentPrice - low52) / (high52 - low52) * 100) : 50;
+
+      const returns5d = closes.length >= 6 ? ((closes[closes.length - 1] / closes[closes.length - 6]) - 1) * 100 : null;
+      const returns20d = closes.length >= 21 ? ((closes[closes.length - 1] / closes[closes.length - 21]) - 1) * 100 : null;
+
+      const technicalSummary = `
+PRE-COMPUTED TECHNICAL INDICATORS (server-side calculated, use these for accurate analysis):
+Moving Averages:
+  SMA(5): ${sma5?.toFixed(4) ?? "N/A"}
+  SMA(10): ${sma10?.toFixed(4) ?? "N/A"}
+  SMA(20): ${sma20?.toFixed(4) ?? "N/A"}
+  SMA(50): ${sma50?.toFixed(4) ?? "N/A"}
+  SMA(100): ${sma100?.toFixed(4) ?? "N/A"}
+  EMA(12): ${ema12?.toFixed(4) ?? "N/A"}
+  EMA(26): ${ema26?.toFixed(4) ?? "N/A"}
+Momentum:
+  RSI(14): ${rsi14?.toFixed(2) ?? "N/A"}
+  MACD (12,26): ${macdValue?.toFixed(4) ?? "N/A"}
+Volume:
+  Current Volume: ${currentVol}
+  20-Day Avg Volume: ${avgVol20?.toFixed(0) ?? "N/A"}
+  Volume Ratio (current/avg): ${volRatio?.toFixed(2) ?? "N/A"}x
+Price Levels:
+  20-Day High: ${high20}
+  20-Day Low: ${low20}
+  52-Week Range Position: ${priceRange52Pct.toFixed(1)}% (0%=at low, 100%=at high)
+Performance:
+  5-Day Return: ${returns5d?.toFixed(2) ?? "N/A"}%
+  20-Day Return: ${returns20d?.toFixed(2) ?? "N/A"}%
+MA Alignment: Price ${currentPrice > (sma20 ?? 0) ? "ABOVE" : "BELOW"} SMA20, ${currentPrice > (sma50 ?? 0) ? "ABOVE" : "BELOW"} SMA50
+`;
 
       const priceData = recentCandles
         .map(
@@ -1091,28 +1184,41 @@ Use the above verified information for the companyProfile fields. The "business"
         ? `\n\nCRITICAL LANGUAGE REQUIREMENT: ALL text content in the response (patternAnalysis, sentiment, companyProfile.business, companyProfile.strengths, companyProfile.risks, recommendation, companyProfile.sector, companyProfile.industry) MUST be written in ${responseLang}. Only the JSON keys, trend value (bullish/bearish/neutral), numeric values, and indicator signal values (Overbought/Oversold/Neutral/Strong/Weak/Upward/Downward/Sideways) should remain in English.`
         : "";
 
-      const prompt = `You are an expert stock market technical analyst. Analyze the following stock data for ${symbol} (${companyName}) and provide a comprehensive analysis.
+      const prompt = `You are an expert stock market technical analyst with deep experience in quantitative analysis. Analyze the following stock data for ${symbol} (${companyName}) and provide a comprehensive analysis.
 
 ${exchangeContext}
 
 ${quoteInfo}
 
+${technicalSummary}
+
 Recent OHLCV Data (last ${recentCandles.length} trading days):
 ${priceData}
+
+CONVICTION SCORE METHODOLOGY:
+Your "confidence" score (0-100) represents how many technical signals ALIGN and CONFIRM the trend direction. Score it based on these factors:
+- Moving Average Alignment (0-20 pts): Price above/below SMA20, SMA50, SMA100 all agreeing = 20pts. Mixed signals = 5-10pts.
+- RSI Confirmation (0-15 pts): RSI confirming trend (>55 for bullish, <45 for bearish) = 15pts. RSI neutral (45-55) = 5pts. RSI contradicting trend = 0pts.
+- MACD Direction (0-15 pts): MACD positive and rising for bullish (or negative and falling for bearish) = 15pts.
+- Volume Confirmation (0-15 pts): Volume ratio >1.2x with price moving in trend direction = 15pts. Low volume = 5pts.
+- Price Momentum (0-15 pts): 5-day and 20-day returns both confirming trend = 15pts. Mixed = 5pts.
+- Chart Pattern Clarity (0-10 pts): Clear recognizable pattern = 10pts. No pattern = 2pts.
+- 52-Week Range Position (0-10 pts): Near highs for bullish / near lows for bearish = 10pts. Mid-range = 5pts.
+A score of 75+ means STRONG conviction (most signals agree). 50-74 is MODERATE. Below 50 is WEAK/conflicting signals. Do NOT default to 50 — calculate based on the actual data above.
 
 Provide your analysis in the following JSON format exactly:
 {
   "trend": "bullish" or "bearish" or "neutral",
-  "confidence": <number 0-100>,
+  "confidence": <number 0-100, calculated using the methodology above>,
   "patternAnalysis": "<detailed description of chart patterns detected, e.g., ascending triangle, head and shoulders, double bottom, etc.>",
   "indicators": {
-    "rsi": { "value": <number>, "signal": "<Overbought/Oversold/Neutral>" },
-    "macd": { "value": "<string like +0.45 or -0.12>", "signal": "<Strong/Weak/Neutral>" },
+    "rsi": { "value": <use the pre-computed RSI(14) value>, "signal": "<Overbought/Oversold/Neutral>" },
+    "macd": { "value": "<use the pre-computed MACD value>", "signal": "<Strong/Weak/Neutral>" },
     "trend": { "value": "<Upward/Downward/Sideways>", "signal": "<Direction>" },
     "support": <number - key support level>,
     "resistance": <number - key resistance level>,
-    "ma20": <number - 20-day moving average>,
-    "ma50": <number - 50-day moving average>
+    "ma20": <use the pre-computed SMA(20) value>,
+    "ma50": <use the pre-computed SMA(50) value>
   },
   "sentiment": "<1-2 sentence market sentiment summary>",
   "companyProfile": {
@@ -1125,7 +1231,7 @@ Provide your analysis in the following JSON format exactly:
   "recommendation": "<brief actionable recommendation for investors>"
 }
 
-IMPORTANT: The company profile must be about the EXACT company identified by the symbol and name above. Do NOT confuse with similarly named companies. Be accurate with your technical calculations. Base RSI, MACD, and moving averages on the actual price data provided. Return ONLY valid JSON, no markdown.${langInstruction}`;
+IMPORTANT: The company profile must be about the EXACT company identified by the symbol and name above. Do NOT confuse with similarly named companies. Use the PRE-COMPUTED technical indicator values provided above — do NOT recalculate them. Return ONLY valid JSON, no markdown.${langInstruction}`;
 
       let content = "";
       const aiConfig = getAIProvider();
@@ -1136,7 +1242,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
         });
         const response = await anthropic.messages.create({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 1500,
+          max_tokens: 2000,
           temperature: 0.3,
           messages: [{ role: "user", content: prompt }],
         });
@@ -1147,7 +1253,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
         const response = await client.chat.completions.create({
           model: "gpt-5.2",
           messages: [{ role: "user", content: prompt }],
-          max_completion_tokens: 1500,
+          max_completion_tokens: 2000,
           temperature: 0.3,
         });
         content = response.choices[0]?.message?.content || "{}";
@@ -1155,7 +1261,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
         const response = await replitOpenai.chat.completions.create({
           model: "gpt-5.2",
           messages: [{ role: "user", content: prompt }],
-          max_completion_tokens: 1500,
+          max_completion_tokens: 2000,
           temperature: 0.3,
         });
         content = response.choices[0]?.message?.content || "{}";
