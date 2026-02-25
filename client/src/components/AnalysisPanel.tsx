@@ -108,8 +108,11 @@ export function AnalysisPanel({
               </span>
               <span className="group relative">
                 <Info className="w-4 h-4 text-muted-foreground/50 hover:text-primary cursor-help transition-colors" />
-                <span className="absolute left-0 top-6 z-50 hidden group-hover:block w-56 p-2.5 bg-card border border-primary/20 rounded-lg shadow-xl text-[11px] text-muted-foreground leading-relaxed">
-                  {t("convictionTooltip")}
+                <span className="absolute left-0 top-6 z-50 hidden group-hover:block w-72 p-3 bg-card border border-primary/20 rounded-lg shadow-xl text-[11px] text-muted-foreground leading-relaxed">
+                  <span className="block mb-1.5 text-muted-foreground/70">{t("convictionTooltip")}</span>
+                  <span className="block mb-1"><span className="text-green-400 font-medium">75-100%</span> — {t("convictionStrong")}</span>
+                  <span className="block mb-1"><span className="text-yellow-400 font-medium">50-74%</span> — {t("convictionModerate")}</span>
+                  <span className="block"><span className="text-red-400 font-medium">&lt;50%</span> — {t("convictionWeak")}</span>
                 </span>
               </span>
             </div>

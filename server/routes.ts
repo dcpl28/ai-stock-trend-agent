@@ -1196,15 +1196,15 @@ Recent OHLCV Data (last ${recentCandles.length} trading days):
 ${priceData}
 
 CONVICTION SCORE METHODOLOGY:
-Your "confidence" score (0-100) represents how many technical signals ALIGN and CONFIRM the trend direction. Score it based on these factors:
-- Moving Average Alignment (0-20 pts): Price above/below SMA20, SMA50, SMA100 all agreeing = 20pts. Mixed signals = 5-10pts.
-- RSI Confirmation (0-15 pts): RSI confirming trend (>55 for bullish, <45 for bearish) = 15pts. RSI neutral (45-55) = 5pts. RSI contradicting trend = 0pts.
-- MACD Direction (0-15 pts): MACD positive and rising for bullish (or negative and falling for bearish) = 15pts.
-- Volume Confirmation (0-15 pts): Volume ratio >1.2x with price moving in trend direction = 15pts. Low volume = 5pts.
-- Price Momentum (0-15 pts): 5-day and 20-day returns both confirming trend = 15pts. Mixed = 5pts.
-- Chart Pattern Clarity (0-10 pts): Clear recognizable pattern = 10pts. No pattern = 2pts.
-- 52-Week Range Position (0-10 pts): Near highs for bullish / near lows for bearish = 10pts. Mid-range = 5pts.
-A score of 75+ means STRONG conviction (most signals agree). 50-74 is MODERATE. Below 50 is WEAK/conflicting signals. Do NOT default to 50 — calculate based on the actual data above.
+Your "confidence" score (0-100) represents how many technical signals ALIGN and CONFIRM the trend direction. Be generous but honest — most stocks with any identifiable trend should score 50+. Score it based on these factors:
+- Moving Average Alignment (0-20 pts): Price above/below SMA20 and SMA50 agreeing = 15-20pts. One agreeing = 10pts. Neither = 5pts.
+- RSI Confirmation (0-15 pts): RSI confirming trend direction = 15pts. RSI neutral (40-60) = 10pts. RSI strongly contradicting = 5pts.
+- MACD Direction (0-15 pts): MACD confirming trend = 15pts. MACD near zero = 10pts. MACD contradicting = 5pts.
+- Volume Confirmation (0-15 pts): Volume ratio >1.2x with trend = 15pts. Normal volume = 10pts. Very low volume = 5pts.
+- Price Momentum (0-15 pts): 5-day and 20-day returns both confirming = 15pts. One confirming = 10pts. Both flat = 8pts.
+- Chart Pattern Clarity (0-10 pts): Clear pattern = 10pts. Partial pattern = 6pts. No pattern = 4pts.
+- 52-Week Range Position (0-10 pts): Position supporting trend = 10pts. Mid-range = 7pts. Contradicting = 4pts.
+A score of 75-100% means STRONG conviction (most signals agree). 50-74% means MODERATE conviction. Below 50% means signals are conflicting. Most stocks with any trend should score at least 55-65. Do NOT default to 50 — calculate based on actual signals.
 
 Provide your analysis in the following JSON format exactly:
 {
