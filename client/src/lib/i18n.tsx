@@ -92,7 +92,7 @@ const translations = {
     // Analysis Panel
     marketSentiment: "Market Sentiment",
     aiConvictionScore: "AI Conviction Score (%)",
-    convictionTooltip: "Based on technical signal alignment",
+    convictionTooltip: "A higher score means the AI sees clearer patterns and feels stronger about its assessment.",
     convictionStrong: "Most signals agree, strong trend",
     convictionModerate: "Some signals agree, moderate trend",
     convictionWeak: "Signals are conflicting, no clear direction",
@@ -314,7 +314,7 @@ const translations = {
 
     marketSentiment: "市场情绪",
     aiConvictionScore: "AI 确信度评分 (%)",
-    convictionTooltip: "基于技术信号对齐",
+    convictionTooltip: "分数越高表示AI发现的模式越清晰，对其评估越有信心。",
     convictionStrong: "大多数信号一致，趋势强劲",
     convictionModerate: "部分信号一致，趋势适中",
     convictionWeak: "信号矛盾，无明确方向",
@@ -531,7 +531,7 @@ const translations = {
 
     marketSentiment: "Sentimen Pasaran",
     aiConvictionScore: "Skor Keyakinan AI (%)",
-    convictionTooltip: "Berdasarkan penjajaran isyarat teknikal",
+    convictionTooltip: "Skor lebih tinggi bermakna AI melihat corak lebih jelas dan lebih yakin dengan penilaiannya.",
     convictionStrong: "Kebanyakan isyarat sepakat, trend kuat",
     convictionModerate: "Sesetengah isyarat sepakat, trend sederhana",
     convictionWeak: "Isyarat bercanggah, tiada arah jelas",
