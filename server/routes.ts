@@ -1241,7 +1241,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
           apiKey: process.env.ANTHROPIC_API_KEY!,
         });
         const response = await anthropic.messages.create({
-          model: "claude-sonnet-4-20250514",
+          model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
           max_tokens: 2000,
           temperature: 0.3,
           messages: [{ role: "user", content: prompt }],
@@ -1251,7 +1251,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
       } else if (aiConfig.type === "openai") {
         const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
         const response = await client.chat.completions.create({
-          model: "gpt-5.2",
+          model: process.env.OPENAI_MODEL || "gpt-5.2",
           messages: [{ role: "user", content: prompt }],
           max_completion_tokens: 2000,
           temperature: 0.3,
@@ -1259,7 +1259,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
         content = response.choices[0]?.message?.content || "{}";
       } else {
         const response = await replitOpenai.chat.completions.create({
-          model: "gpt-5.2",
+          model: process.env.OPENAI_MODEL || "gpt-5.2",
           messages: [{ role: "user", content: prompt }],
           max_completion_tokens: 2000,
           temperature: 0.3,

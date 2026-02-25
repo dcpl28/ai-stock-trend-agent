@@ -87,6 +87,8 @@ Pre-built integration modules provided by Replit:
 - `AI_INTEGRATIONS_OPENAI_API_KEY`: Default OpenAI/Replit AI API key
 - `AI_INTEGRATIONS_OPENAI_BASE_URL`: OpenAI API base URL (for Replit proxy)
 - `ADMIN_PASSWORD`: Admin password for user management panel (required secret)
+- `OPENAI_MODEL`: OpenAI/Replit AI model name (default: `gpt-5.2`)
+- `ANTHROPIC_MODEL`: Anthropic model name (default: `claude-sonnet-4-20250514`)
 
 ### Key NPM Packages
 - `express` + `http`: Server framework
