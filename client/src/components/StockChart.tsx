@@ -34,10 +34,14 @@ export function StockChart({ data, symbol }: StockChartProps) {
     height: dimensions.height - CHART_PADDING.top - CHART_PADDING.bottom,
   }), [dimensions]);
 
+  const validData = useMemo(() => {
+    return data.filter(d => d.open > 0 && d.close > 0 && d.high > 0 && d.low > 0 && isFinite(d.open) && isFinite(d.close) && isFinite(d.high) && isFinite(d.low));
+  }, [data]);
+
   const dataWithMA = useMemo(() => {
     const k = 2 / (20 + 1);
     let ema20: number | null = null;
-    return data.map((item, index, array) => {
+    return validData.map((item, index, array) => {
       if (index < 19) {
         ema20 = null;
       } else if (index === 19) {
@@ -51,16 +55,16 @@ export function StockChart({ data, symbol }: StockChartProps) {
         : null;
       return { ...item, ema20, sma200 };
     });
-  }, [data]);
+  }, [validData]);
 
   const { minPrice, maxPrice } = useMemo(() => {
-    const lows = data.map(d => d.low);
-    const highs = data.map(d => d.high);
+    const lows = validData.map(d => d.low);
+    const highs = validData.map(d => d.high);
     const min = Math.min(...lows);
     const max = Math.max(...highs);
     const padding = (max - min) * 0.05 || 0.01;
     return { minPrice: min - padding, maxPrice: max + padding };
-  }, [data]);
+  }, [validData]);
 
   const scaleY = useCallback((value: number) => {
     const ratio = (value - minPrice) / (maxPrice - minPrice);
@@ -68,15 +72,15 @@ export function StockChart({ data, symbol }: StockChartProps) {
   }, [minPrice, maxPrice, chartArea]);
 
   const scaleX = useCallback((index: number) => {
-    if (data.length <= 1) return chartArea.x + chartArea.width / 2;
-    const barWidth = chartArea.width / data.length;
+    if (dataWithMA.length <= 1) return chartArea.x + chartArea.width / 2;
+    const barWidth = chartArea.width / dataWithMA.length;
     return chartArea.x + index * barWidth + barWidth / 2;
-  }, [data.length, chartArea]);
+  }, [dataWithMA.length, chartArea]);
 
   const barWidth = useMemo(() => {
-    const w = chartArea.width / data.length;
+    const w = chartArea.width / dataWithMA.length;
     return Math.max(3, Math.min(w * 0.7, 20));
-  }, [data.length, chartArea.width]);
+  }, [dataWithMA.length, chartArea.width]);
 
   const yTicks = useMemo(() => {
     const range = maxPrice - minPrice;
@@ -90,26 +94,26 @@ export function StockChart({ data, symbol }: StockChartProps) {
   }, [minPrice, maxPrice]);
 
   const xTicks = useMemo(() => {
-    if (data.length <= 8) return data.map((_, i) => i);
-    const step = Math.ceil(data.length / 8);
+    if (dataWithMA.length <= 8) return dataWithMA.map((_, i) => i);
+    const step = Math.ceil(dataWithMA.length / 8);
     const ticks = [];
-    for (let i = 0; i < data.length; i += step) {
+    for (let i = 0; i < dataWithMA.length; i += step) {
       ticks.push(i);
     }
     return ticks;
-  }, [data]);
+  }, [dataWithMA]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
-    const barStep = chartArea.width / data.length;
+    const barStep = chartArea.width / dataWithMA.length;
     const idx = Math.floor((mouseX - chartArea.x) / barStep);
-    if (idx >= 0 && idx < data.length) {
+    if (idx >= 0 && idx < dataWithMA.length) {
       setHoverIndex(idx);
     } else {
       setHoverIndex(null);
     }
-  }, [chartArea, data.length]);
+  }, [chartArea, dataWithMA.length]);
 
   const hoverData = hoverIndex !== null ? dataWithMA[hoverIndex] : null;
 
@@ -165,7 +169,7 @@ export function StockChart({ data, symbol }: StockChartProps) {
                 fontFamily="var(--font-sans)"
                 textAnchor="middle"
               >
-                {formatDate(data[idx].time)}
+                {formatDate(dataWithMA[idx].time)}
               </text>
             ))}
 

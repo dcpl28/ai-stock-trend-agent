@@ -769,7 +769,15 @@ export async function registerRoutes(
             q.open != null &&
             q.close != null &&
             q.high != null &&
-            q.low != null,
+            q.low != null &&
+            q.open > 0 &&
+            q.close > 0 &&
+            q.high > 0 &&
+            q.low > 0 &&
+            isFinite(q.open) &&
+            isFinite(q.close) &&
+            isFinite(q.high) &&
+            isFinite(q.low),
         )
         .map((q: any) => ({
           time: new Date(q.date).toISOString().split("T")[0],
