@@ -8,7 +8,7 @@ import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { FavouriteButton } from "@/components/FavouriteButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle, ArrowLeft, Star, X } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle, ArrowLeft, Star, X, Lock } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -86,7 +86,7 @@ export default function Dashboard() {
   const [symbol, setSymbol] = useState(initialSymbol);
   const [searchInput, setSearchInput] = useState("");
   const [analysisRequested, setAnalysisRequested] = useState(false);
-  const { email, isAdmin, logout, checkSession, timeLeft } = useAuth();
+  const { email, isAdmin, logout, checkSession, timeLeft, subscriptionPlan, subscriptionStatus } = useAuth();
   const { t, lang } = useI18n();
   const [, navigate] = useLocation();
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
@@ -100,6 +100,9 @@ export default function Dashboard() {
     createdAt: string;
   }
 
+  const isSubscribed = subscriptionStatus === "active" && !!subscriptionPlan;
+  const canUseFavourites = isAdmin || isSubscribed;
+
   const { data: favourites = [] } = useQuery<FavouriteEntry[]>({
     queryKey: ['/api/favourites'],
     queryFn: async () => {
@@ -107,11 +110,12 @@ export default function Dashboard() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: isAdmin,
+    enabled: canUseFavourites,
     staleTime: 30 * 1000,
   });
 
   const isFavourited = favourites.some(f => f.symbol === symbol);
+  const maxFavourites = isAdmin ? 10 : subscriptionPlan === "professional" ? 10 : 5;
 
   const handleToggleFavourite = async (sym: string, displayName: string) => {
     const existing = favourites.find(f => f.symbol === sym);
@@ -353,14 +357,14 @@ export default function Dashboard() {
                 <div className="flex items-baseline gap-4">
                   <h2 className="text-3xl font-serif text-foreground flex items-center gap-2" data-testid="text-symbol-name">
                     {stockData?.name || symbol}
-                    {isAdmin && (
-                      <FavouriteButton
-                        symbol={symbol}
-                        displayName={stockData?.name || symbol}
-                        isFavourited={isFavourited}
-                        onToggle={handleToggleFavourite}
-                      />
-                    )}
+                    <FavouriteButton
+                      symbol={symbol}
+                      displayName={stockData?.name || symbol}
+                      isFavourited={isFavourited}
+                      onToggle={handleToggleFavourite}
+                      locked={!canUseFavourites}
+                      onLockedClick={() => navigate("/premium")}
+                    />
                   </h2>
                   {currentPrice > 0 && (
                     <div className="flex items-baseline gap-2">
@@ -447,68 +451,87 @@ export default function Dashboard() {
                currency={currency}
              />
 
-             {isAdmin && (
-               <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-5 shadow-2xl shadow-black/40" data-testid="panel-favourites">
-                 <div className="flex items-center justify-between mb-3">
-                   <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                     <Star className="w-3.5 h-3.5 text-yellow-400" />
-                     {t("myFavouriteStocks")}
-                   </h3>
+             <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-5 shadow-2xl shadow-black/40" data-testid="panel-favourites">
+               <div className="flex items-center justify-between mb-3">
+                 <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                   <Star className="w-3.5 h-3.5 text-yellow-400" />
+                   {t("myFavouriteStocks")}
+                 </h3>
+                 {canUseFavourites ? (
                    <span className="text-[10px] text-muted-foreground/50" data-testid="text-favourites-count">
-                     {t("favouritesCount", { count: String(favourites.length), max: "10" })}
+                     {t("favouritesCount", { count: String(favourites.length), max: String(maxFavourites) })}
                    </span>
-                 </div>
-                 {favourites.length === 0 ? (
-                   <p className="text-xs text-muted-foreground/50 font-light py-4 text-center" data-testid="text-no-favourites">
-                     {t("noFavouritesYet")}
-                   </p>
                  ) : (
-                   <div className="space-y-1.5">
-                     {favourites.map((fav) => (
-                       <div
-                         key={fav.id}
-                         className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${
-                           fav.symbol === symbol ? "bg-primary/10 border border-primary/20" : "bg-background/20 border border-transparent hover:border-white/[0.06]"
-                         }`}
-                         data-testid={`row-favourite-${fav.id}`}
-                       >
-                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                           <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 shrink-0" />
-                           <div className="min-w-0">
-                             <span className="text-xs text-primary font-mono block truncate" data-testid={`text-fav-symbol-${fav.id}`}>
-                               {fav.symbol}
-                             </span>
-                             <span className="text-[10px] text-muted-foreground/50 block truncate">
-                               {fav.displayName}
-                             </span>
-                           </div>
-                         </div>
-                         <div className="flex items-center gap-1 shrink-0">
-                           <button
-                             onClick={() => {
-                               setSymbol(fav.symbol);
-                               setAnalysisRequested(true);
-                             }}
-                             className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors cursor-pointer"
-                             data-testid={`button-view-fav-${fav.id}`}
-                           >
-                             {t("viewStock")}
-                           </button>
-                           <button
-                             onClick={() => handleRemoveFavourite(fav.id)}
-                             className="p-1 text-muted-foreground/40 hover:text-red-400 rounded transition-colors cursor-pointer"
-                             title={t("removeFromFavourites")}
-                             data-testid={`button-remove-fav-${fav.id}`}
-                           >
-                             <X className="w-3 h-3" />
-                           </button>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
+                   <span className="text-[10px] text-primary/60 flex items-center gap-1">
+                     <Lock className="w-2.5 h-2.5" />
+                     {t("premiumServices")}
+                   </span>
                  )}
                </div>
-             )}
+               {!canUseFavourites ? (
+                 <button
+                   onClick={() => navigate("/premium")}
+                   className="w-full py-6 text-center rounded-lg bg-primary/5 border border-primary/10 hover:border-primary/25 hover:bg-primary/10 transition-colors cursor-pointer group"
+                   data-testid="button-unlock-favourites"
+                 >
+                   <Lock className="w-5 h-5 text-primary/40 mx-auto mb-2 group-hover:text-primary/60 transition-colors" />
+                   <p className="text-xs text-muted-foreground/60 font-light group-hover:text-muted-foreground transition-colors">
+                     {t("subscribeToPremium")}
+                   </p>
+                   <p className="text-[10px] text-primary/50 mt-1 group-hover:text-primary/70 transition-colors">
+                     {t("unlockFavouritesDesc")}
+                   </p>
+                 </button>
+               ) : favourites.length === 0 ? (
+                 <p className="text-xs text-muted-foreground/50 font-light py-4 text-center" data-testid="text-no-favourites">
+                   {t("noFavouritesYet")}
+                 </p>
+               ) : (
+                 <div className="space-y-1.5">
+                   {favourites.map((fav) => (
+                     <div
+                       key={fav.id}
+                       className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${
+                         fav.symbol === symbol ? "bg-primary/10 border border-primary/20" : "bg-background/20 border border-transparent hover:border-white/[0.06]"
+                       }`}
+                       data-testid={`row-favourite-${fav.id}`}
+                     >
+                       <div className="flex items-center gap-2 min-w-0 flex-1">
+                         <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 shrink-0" />
+                         <div className="min-w-0">
+                           <span className="text-xs text-primary font-mono block truncate" data-testid={`text-fav-symbol-${fav.id}`}>
+                             {fav.symbol}
+                           </span>
+                           <span className="text-[10px] text-muted-foreground/50 block truncate">
+                             {fav.displayName}
+                           </span>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-1 shrink-0">
+                         <button
+                           onClick={() => {
+                             setSymbol(fav.symbol);
+                             setAnalysisRequested(true);
+                           }}
+                           className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors cursor-pointer"
+                           data-testid={`button-view-fav-${fav.id}`}
+                         >
+                           {t("viewStock")}
+                         </button>
+                         <button
+                           onClick={() => handleRemoveFavourite(fav.id)}
+                           className="p-1 text-muted-foreground/40 hover:text-red-400 rounded transition-colors cursor-pointer"
+                           title={t("removeFromFavourites")}
+                           data-testid={`button-remove-fav-${fav.id}`}
+                         >
+                           <X className="w-3 h-3" />
+                         </button>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+             </div>
              
              <PromotionalMessage />
           </div>

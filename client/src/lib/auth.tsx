@@ -6,6 +6,8 @@ interface AuthState {
   isAdmin: boolean;
   remainingMs: number;
   loading: boolean;
+  subscriptionPlan: string | null;
+  subscriptionStatus: string | null;
 }
 
 interface AuthContextType extends AuthState {
@@ -25,6 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin: false,
     remainingMs: 0,
     loading: true,
+    subscriptionPlan: null,
+    subscriptionStatus: null,
   });
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -41,6 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin: data.isAdmin || false,
         remainingMs: data.remainingMs || 0,
         loading: false,
+        subscriptionPlan: data.subscriptionPlan || null,
+        subscriptionStatus: data.subscriptionStatus || null,
       });
       setTimeLeft(data.remainingMs || 0);
       if (!data.authenticated && pollRef.current) {
@@ -104,6 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: false,
       remainingMs: 0,
       loading: false,
+      subscriptionPlan: null,
+      subscriptionStatus: null,
     });
   };
 

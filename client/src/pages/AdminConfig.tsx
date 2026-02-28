@@ -99,6 +99,9 @@ export default function AdminConfig() {
   const [approveUserId, setApproveUserId] = useState<string | null>(null);
   const [approvePlan, setApprovePlan] = useState<string>("essential");
   const [approveMonths, setApproveMonths] = useState(1);
+  const [subsPage, setSubsPage] = useState(1);
+  const [subsSearch, setSubsSearch] = useState("");
+  const SUBS_PER_PAGE = 10;
 
   const [waNumber, setWaNumber] = useState("");
   const [waMessage, setWaMessage] = useState("");
@@ -119,6 +122,17 @@ export default function AdminConfig() {
 
   const totalUserPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
   const paginatedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
+
+  const filteredSubs = useMemo(() => {
+    if (!subsSearch.trim()) return subscriptions;
+    const search = subsSearch.toLowerCase();
+    return subscriptions.filter(s => s.email.toLowerCase().includes(search));
+  }, [subscriptions, subsSearch]);
+
+  useEffect(() => { setSubsPage(1); }, [subsSearch]);
+
+  const totalSubsPages = Math.max(1, Math.ceil(filteredSubs.length / SUBS_PER_PAGE));
+  const paginatedSubs = filteredSubs.slice((subsPage - 1) * SUBS_PER_PAGE, subsPage * SUBS_PER_PAGE);
 
   const filteredLogs = useMemo(() => {
     return analysisLogs.filter(log => {
@@ -551,14 +565,20 @@ export default function AdminConfig() {
         {activeTab === "subscriptions" && (
           <div className="space-y-6">
             <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
-              <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
-                <CreditCard className="w-3.5 h-3.5 text-primary" /> {t("subscriptionManagement")}
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                  <CreditCard className="w-3.5 h-3.5 text-primary" /> {t("subscriptionManagement")} ({filteredSubs.length}{subsSearch ? ` / ${subscriptions.length}` : ""})
+                </h2>
+              </div>
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                <Input type="text" placeholder={t("searchUsers")} value={subsSearch} onChange={(e) => setSubsSearch(e.target.value)} className="pl-9 h-9 bg-background/30 border-white/[0.06] focus-visible:border-primary/50 text-foreground text-sm" data-testid="input-search-subs" />
+              </div>
               {subsLoading ? (
                 <div className="flex items-center justify-center py-8 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin mr-2" /></div>
               ) : (
                 <div className="space-y-3">
-                  {subscriptions.map(sub => {
+                  {paginatedSubs.map(sub => {
                     const isActive = sub.subscriptionStatus === "active";
                     const isExpired = sub.subscriptionStatus === "expired" || (sub.subscriptionExpiresAt && new Date(sub.subscriptionExpiresAt) < new Date());
                     return (
@@ -616,8 +636,17 @@ export default function AdminConfig() {
                       </div>
                     );
                   })}
-                  {subscriptions.length === 0 && (
+                  {filteredSubs.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground font-light">{t("noUsersYet")}</div>
+                  )}
+                  {totalSubsPages > 1 && (
+                    <div className="flex items-center justify-center gap-1 pt-3">
+                      <button onClick={() => setSubsPage(1)} disabled={subsPage === 1} className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer" data-testid="button-subs-first">«</button>
+                      <button onClick={() => setSubsPage(p => Math.max(1, p - 1))} disabled={subsPage === 1} className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer" data-testid="button-subs-prev">‹</button>
+                      <span className="text-[10px] text-muted-foreground/70 px-3 uppercase tracking-widest">Page {subsPage} of {totalSubsPages}</span>
+                      <button onClick={() => setSubsPage(p => Math.min(totalSubsPages, p + 1))} disabled={subsPage === totalSubsPages} className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer" data-testid="button-subs-next">›</button>
+                      <button onClick={() => setSubsPage(totalSubsPages)} disabled={subsPage === totalSubsPages} className="h-7 w-7 flex items-center justify-center text-[10px] text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed border border-white/[0.06] rounded transition-colors cursor-pointer" data-testid="button-subs-last">»</button>
+                    </div>
                   )}
                 </div>
               )}

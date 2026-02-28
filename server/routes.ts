@@ -545,11 +545,27 @@ export async function registerRoutes(
       }
     }
 
+    let subscriptionPlan: string | null = null;
+    let subscriptionStatus: string | null = null;
+    if (!req.session.isAdmin && req.session.userId) {
+      const user = await storage.getUser(req.session.userId);
+      if (user) {
+        subscriptionPlan = user.subscriptionPlan;
+        subscriptionStatus = user.subscriptionStatus;
+        if (subscriptionStatus === "active" && user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) < new Date()) {
+          subscriptionStatus = "expired";
+          subscriptionPlan = null;
+        }
+      }
+    }
+
     res.json({
       authenticated: true,
       email: req.session.email,
       isAdmin: req.session.isAdmin || false,
       remainingMs: remaining,
+      subscriptionPlan,
+      subscriptionStatus,
     });
   });
 

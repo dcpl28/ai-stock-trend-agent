@@ -226,6 +226,8 @@ const translations = {
     // Favourites
     favourites: "Favourites",
     addToFavourites: "Add to Favourites",
+    subscribeToPremium: "Subscribe to unlock",
+    unlockFavouritesDesc: "Save your favourite stocks and get daily AI analysis emails",
     removeFromFavourites: "Remove from Favourites",
     myFavouriteStocks: "My Favourite Stocks",
     noFavouritesYet: "No favourite stocks yet. Use the ★ button to add stocks.",
@@ -525,6 +527,8 @@ const translations = {
 
     favourites: "收藏",
     addToFavourites: "添加到收藏",
+    subscribeToPremium: "订阅以解锁",
+    unlockFavouritesDesc: "保存您的收藏股票，每日获取AI分析邮件",
     removeFromFavourites: "从收藏中移除",
     myFavouriteStocks: "我的收藏股票",
     noFavouritesYet: "暂无收藏股票。使用 ★ 按钮添加股票。",
@@ -819,6 +823,8 @@ const translations = {
 
     favourites: "Kegemaran",
     addToFavourites: "Tambah ke Kegemaran",
+    subscribeToPremium: "Langgan untuk membuka kunci",
+    unlockFavouritesDesc: "Simpan saham kegemaran anda dan dapatkan e-mel analisis AI harian",
     removeFromFavourites: "Buang dari Kegemaran",
     myFavouriteStocks: "Saham Kegemaran Saya",
     noFavouritesYet: "Tiada saham kegemaran lagi. Gunakan butang ★ untuk menambah saham.",
