@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
+import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface UserEntry {
@@ -76,6 +76,14 @@ export default function AdminConfig() {
   const [newRuleEndIp, setNewRuleEndIp] = useState("");
   const [newRuleDesc, setNewRuleDesc] = useState("");
   const [addingRule, setAddingRule] = useState(false);
+  const [plan5Price, setPlan5Price] = useState("5");
+  const [plan10Price, setPlan10Price] = useState("10");
+  const [plan5Input, setPlan5Input] = useState("5");
+  const [plan10Input, setPlan10Input] = useState("10");
+  const [savingPricing, setSavingPricing] = useState(false);
+  const [triggeringEmail, setTriggeringEmail] = useState(false);
+  const [emailResult, setEmailResult] = useState<any>(null);
+  const [emailLogs, setEmailLogs] = useState<any[]>([]);
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return users;
@@ -140,6 +148,8 @@ export default function AdminConfig() {
     fetchSettings();
     fetchBlockedIps();
     fetchIpRules();
+    fetchPlanPricing();
+    fetchEmailLogs();
   }, [isAdmin]);
 
   const fetchUsers = async () => {
@@ -234,6 +244,61 @@ export default function AdminConfig() {
         setRateLimitInput(String(data.rateLimitPerHour));
       }
     } catch {}
+  };
+
+  const fetchPlanPricing = async () => {
+    try {
+      const res = await fetch("/api/admin/plan-pricing");
+      if (res.ok) {
+        const data = await res.json();
+        setPlan5Price(data.plan5Price);
+        setPlan10Price(data.plan10Price);
+        setPlan5Input(data.plan5Price);
+        setPlan10Input(data.plan10Price);
+      }
+    } catch {}
+  };
+
+  const fetchEmailLogs = async () => {
+    try {
+      const res = await fetch("/api/admin/email-logs");
+      if (res.ok) {
+        const data = await res.json();
+        setEmailLogs(data);
+      }
+    } catch {}
+  };
+
+  const triggerEmailAnalysis = async () => {
+    setTriggeringEmail(true);
+    setEmailResult(null);
+    try {
+      const res = await fetch("/api/admin/trigger-email", { method: "POST" });
+      const data = await res.json();
+      setEmailResult(data);
+      fetchEmailLogs();
+    } catch (err: any) {
+      setEmailResult({ success: false, errors: [err.message] });
+    } finally {
+      setTriggeringEmail(false);
+    }
+  };
+
+  const savePlanPricing = async () => {
+    setSavingPricing(true);
+    try {
+      const res = await fetch("/api/admin/plan-pricing", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan5Price: plan5Input, plan10Price: plan10Input }),
+      });
+      if (res.ok) {
+        setPlan5Price(plan5Input);
+        setPlan10Price(plan10Input);
+      }
+    } catch {} finally {
+      setSavingPricing(false);
+    }
   };
 
   const saveRateLimit = async () => {
@@ -618,6 +683,125 @@ export default function AdminConfig() {
             <span className="text-[10px] text-muted-foreground/50">
               Current: {rateLimit}/hr
             </span>
+          </div>
+        </div>
+
+        <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
+          <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+            <DollarSign className="w-3.5 h-3.5 text-primary" />
+            {t("planPricing")}
+          </h2>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <label className="text-xs text-muted-foreground whitespace-nowrap min-w-[200px]">
+                {t("fiveStockPlan")}
+              </label>
+              <Input
+                type="number"
+                min={1}
+                step="0.01"
+                value={plan5Input}
+                onChange={(e) => setPlan5Input(e.target.value)}
+                className="w-24 h-9 bg-background/30 border-white/[0.06] focus-visible:border-primary/50 text-foreground text-center"
+                data-testid="input-plan5-price"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-xs text-muted-foreground whitespace-nowrap min-w-[200px]">
+                {t("tenStockPlan")}
+              </label>
+              <Input
+                type="number"
+                min={1}
+                step="0.01"
+                value={plan10Input}
+                onChange={(e) => setPlan10Input(e.target.value)}
+                className="w-24 h-9 bg-background/30 border-white/[0.06] focus-visible:border-primary/50 text-foreground text-center"
+                data-testid="input-plan10-price"
+              />
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <Button
+                onClick={savePlanPricing}
+                disabled={savingPricing || (plan5Input === plan5Price && plan10Input === plan10Price)}
+                className="h-9 px-4 bg-primary text-primary-foreground text-xs font-medium tracking-widest hover:bg-primary/90 cursor-pointer"
+                data-testid="button-save-pricing"
+              >
+                {savingPricing ? <Loader2 className="w-3 h-3 animate-spin" /> : t("savePricing")}
+              </Button>
+              <span className="text-[10px] text-muted-foreground/50">
+                Current: ${plan5Price} / ${plan10Price}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
+          <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Activity className="w-3.5 h-3.5 text-primary" />
+            {t("dailyEmailAnalysis")}
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={triggerEmailAnalysis}
+                disabled={triggeringEmail}
+                className="h-9 px-4 bg-primary text-primary-foreground text-xs font-medium tracking-widest hover:bg-primary/90 cursor-pointer"
+                data-testid="button-trigger-email"
+              >
+                {triggeringEmail ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin mr-2" />
+                    {t("processing")}...
+                  </>
+                ) : (
+                  t("triggerEmailNow")
+                )}
+              </Button>
+              <span className="text-[10px] text-muted-foreground/50">
+                {t("triggerEmailDesc")}
+              </span>
+            </div>
+
+            {emailResult && (
+              <div className={`p-3 rounded-lg border text-xs ${emailResult.success ? "border-green-500/30 bg-green-500/5 text-green-400" : "border-red-500/30 bg-red-500/5 text-red-400"}`} data-testid="text-email-result">
+                {emailResult.success ? (
+                  <p>{t("emailSentSuccess")}: {emailResult.usersProcessed} {t("usersProcessed")}</p>
+                ) : (
+                  <div>
+                    <p>{t("emailSentError")}</p>
+                    {emailResult.errors?.map((e: string, i: number) => (
+                      <p key={i} className="mt-1 text-[10px]">{e}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {emailLogs.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                  <FileText className="w-3 h-3" />
+                  {t("recentEmailLogs")}
+                </h3>
+                <div className="max-h-[200px] overflow-y-auto space-y-1">
+                  {emailLogs.slice(0, 20).map((log: any) => (
+                    <div key={log.id} className="flex items-center justify-between text-[11px] px-3 py-2 rounded-lg bg-background/30" data-testid={`row-email-log-${log.id}`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-medium ${log.status === "sent" ? "bg-green-500/20 text-green-400" : log.status === "error" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                          {log.status}
+                        </span>
+                        <span className="text-foreground/80">{log.userEmail}</span>
+                        <span className="text-muted-foreground/50">{log.stocksIncluded}</span>
+                      </div>
+                      <span className="text-muted-foreground/40 text-[10px]">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

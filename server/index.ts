@@ -134,6 +134,9 @@ app.use((req, res, next) => {
       await setupVite(httpServer, app);
     }
 
+    const { startScheduler } = await import("./scheduler");
+    startScheduler();
+
     const port = parseInt(process.env.PORT || "5000", 10);
     httpServer.listen(
       {

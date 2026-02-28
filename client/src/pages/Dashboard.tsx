@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import TradingViewChart from "@/components/TradingViewChart";
 import { StockChart } from "@/components/StockChart";
 import { CompanyInsights } from "@/components/CompanyInsights";
 import { StockNews } from "@/components/StockNews";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
+import { FavouriteButton } from "@/components/FavouriteButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle, ArrowLeft, Star, X } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -89,6 +90,51 @@ export default function Dashboard() {
   const { t, lang } = useI18n();
   const [, navigate] = useLocation();
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  interface FavouriteEntry {
+    id: number;
+    userId: string;
+    symbol: string;
+    displayName: string;
+    createdAt: string;
+  }
+
+  const { data: favourites = [] } = useQuery<FavouriteEntry[]>({
+    queryKey: ['/api/favourites'],
+    queryFn: async () => {
+      const res = await fetch('/api/favourites');
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isAdmin,
+    staleTime: 30 * 1000,
+  });
+
+  const isFavourited = favourites.some(f => f.symbol === symbol);
+
+  const handleToggleFavourite = async (sym: string, displayName: string) => {
+    const existing = favourites.find(f => f.symbol === sym);
+    if (existing) {
+      await fetch(`/api/favourites/${existing.id}`, { method: 'DELETE' });
+    } else {
+      const res = await fetch('/api/favourites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: sym, displayName }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ['/api/favourites'] });
+  };
+
+  const handleRemoveFavourite = async (id: number) => {
+    await fetch(`/api/favourites/${id}`, { method: 'DELETE' });
+    queryClient.invalidateQueries({ queryKey: ['/api/favourites'] });
+  };
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -232,6 +278,16 @@ export default function Dashboard() {
               <Scan className="w-3.5 h-3.5" />
               {t("scanner")}
             </button>
+            {!isAdmin && (
+              <button
+                onClick={() => navigate("/premium")}
+                className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                data-testid="button-premium"
+              >
+                <Crown className="w-3.5 h-3.5" />
+                {t("premiumServices")}
+              </button>
+            )}
             {isAdmin && (
               <button
                 onClick={() => navigate("/admin")}
@@ -295,8 +351,16 @@ export default function Dashboard() {
           <div className="lg:col-span-8 space-y-6">
              <div className="flex justify-between items-end border-b border-white/5 pb-2">
                 <div className="flex items-baseline gap-4">
-                  <h2 className="text-3xl font-serif text-foreground" data-testid="text-symbol-name">
+                  <h2 className="text-3xl font-serif text-foreground flex items-center gap-2" data-testid="text-symbol-name">
                     {stockData?.name || symbol}
+                    {isAdmin && (
+                      <FavouriteButton
+                        symbol={symbol}
+                        displayName={stockData?.name || symbol}
+                        isFavourited={isFavourited}
+                        onToggle={handleToggleFavourite}
+                      />
+                    )}
                   </h2>
                   {currentPrice > 0 && (
                     <div className="flex items-baseline gap-2">
@@ -382,6 +446,69 @@ export default function Dashboard() {
                isLoading={analysisLoading}
                currency={currency}
              />
+
+             {isAdmin && (
+               <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-5 shadow-2xl shadow-black/40" data-testid="panel-favourites">
+                 <div className="flex items-center justify-between mb-3">
+                   <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                     <Star className="w-3.5 h-3.5 text-yellow-400" />
+                     {t("myFavouriteStocks")}
+                   </h3>
+                   <span className="text-[10px] text-muted-foreground/50" data-testid="text-favourites-count">
+                     {t("favouritesCount", { count: String(favourites.length), max: "10" })}
+                   </span>
+                 </div>
+                 {favourites.length === 0 ? (
+                   <p className="text-xs text-muted-foreground/50 font-light py-4 text-center" data-testid="text-no-favourites">
+                     {t("noFavouritesYet")}
+                   </p>
+                 ) : (
+                   <div className="space-y-1.5">
+                     {favourites.map((fav) => (
+                       <div
+                         key={fav.id}
+                         className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${
+                           fav.symbol === symbol ? "bg-primary/10 border border-primary/20" : "bg-background/20 border border-transparent hover:border-white/[0.06]"
+                         }`}
+                         data-testid={`row-favourite-${fav.id}`}
+                       >
+                         <div className="flex items-center gap-2 min-w-0 flex-1">
+                           <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 shrink-0" />
+                           <div className="min-w-0">
+                             <span className="text-xs text-primary font-mono block truncate" data-testid={`text-fav-symbol-${fav.id}`}>
+                               {fav.symbol}
+                             </span>
+                             <span className="text-[10px] text-muted-foreground/50 block truncate">
+                               {fav.displayName}
+                             </span>
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-1 shrink-0">
+                           <button
+                             onClick={() => {
+                               setSymbol(fav.symbol);
+                               setAnalysisRequested(true);
+                             }}
+                             className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors cursor-pointer"
+                             data-testid={`button-view-fav-${fav.id}`}
+                           >
+                             {t("viewStock")}
+                           </button>
+                           <button
+                             onClick={() => handleRemoveFavourite(fav.id)}
+                             className="p-1 text-muted-foreground/40 hover:text-red-400 rounded transition-colors cursor-pointer"
+                             title={t("removeFromFavourites")}
+                             data-testid={`button-remove-fav-${fav.id}`}
+                           >
+                             <X className="w-3 h-3" />
+                           </button>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+             )}
              
              <PromotionalMessage />
           </div>

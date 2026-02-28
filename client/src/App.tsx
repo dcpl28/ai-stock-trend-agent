@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 import AdminConfig from "@/pages/AdminConfig";
 import Scanner from "@/pages/Scanner";
+import Premium from "@/pages/Premium";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -36,6 +37,7 @@ function AppRoutes() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/scanner" component={Scanner} />
+      <Route path="/premium" component={Premium} />
       <Route path="/admin" component={AdminConfig} />
       <Route component={NotFound} />
     </Switch>

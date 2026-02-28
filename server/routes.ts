@@ -1942,6 +1942,28 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
     }
   });
 
+  app.post("/api/admin/trigger-email", requireAuth, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const { runDailyAnalysis } = await import("./scheduler");
+      console.log("[ADMIN] Manual email trigger requested");
+      const result = await runDailyAnalysis();
+      res.json(result);
+    } catch (error: any) {
+      console.error("[ADMIN] Manual email trigger failed:", error);
+      res.status(500).json({ error: "Failed to trigger email analysis", details: error.message });
+    }
+  });
+
+  app.get("/api/plan-pricing", async (_req: Request, res: Response) => {
+    try {
+      const plan5Price = await storage.getSetting("plan_5_price") || "5";
+      const plan10Price = await storage.getSetting("plan_10_price") || "10";
+      res.json({ plan5Price, plan10Price });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch pricing" });
+    }
+  });
+
   app.get("/api/admin/plan-pricing", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const plan5Price = await storage.getSetting("plan_5_price") || "5";

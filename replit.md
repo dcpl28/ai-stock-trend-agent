@@ -4,7 +4,7 @@
 
 This is a premium stock market analysis terminal built for "Dexter Chia," a remisier (stock broker) offering portfolio management services. The application provides real-time stock charting, AI-powered technical analysis, and company insights. It integrates with Yahoo Finance for market data and supports multiple AI providers (Replit AI, OpenAI, Anthropic) for generating stock analysis.
 
-The app is a full-stack TypeScript project with a React frontend and Express backend, deployed on Replit. It features a luxury dark theme with gold accents (deep navy + gold color scheme) targeting the Malaysian stock market (KLSE/MYX) as well as US markets.
+The app is a full-stack TypeScript project with a React frontend and Express backend, deployed on Replit. It features a luxury dark theme with gold accents (deep navy + gold color scheme) targeting the Malaysian stock market (KLSE/MYX) as well as US markets. Supports three languages: English, Mandarin Chinese, and Malay.
 
 ## User Preferences
 
@@ -14,32 +14,57 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight React router) — routes: Dashboard (/), Scanner (/scanner), Admin (/admin)
+- **Routing**: Wouter (lightweight React router) — routes: Dashboard (/), Scanner (/scanner), Admin (/admin), Premium (/premium)
 - **State Management**: TanStack React Query for server state; local React state for UI
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives with Tailwind CSS v4
 - **Charting**: Dual charting approach — Recharts for custom candlestick charts and TradingView embedded widget for full-featured interactive charts
 - **Styling**: Tailwind CSS with custom CSS variables for a dark luxury theme. Fonts: Cormorant Garamond (serif) and Montserrat (sans-serif) from Google Fonts
 - **Build Tool**: Vite with path aliases (`@/` → `client/src/`, `@shared/` → `shared/`)
+- **i18n**: Custom i18n system in `client/src/lib/i18n.tsx` supporting EN, ZH (Chinese), MS (Malay)
 
 ### Backend (server/)
 - **Framework**: Express.js on Node with TypeScript (tsx for dev, esbuild for production)
-- **API Design**: REST API endpoints under `/api/` prefix. Key routes handle stock data fetching, AI analysis, conversations, and image generation
+- **API Design**: REST API endpoints under `/api/` prefix. Key routes handle stock data fetching, AI analysis, favourites, conversations, and image generation
 - **Stock Data**: Yahoo Finance via `yahoo-finance2` library with symbol resolution for KLSE/MYX and US exchanges
 - **AI Integration**: Supports three providers:
   - Replit AI (default, uses built-in credits via `AI_INTEGRATIONS_OPENAI_API_KEY`)
   - OpenAI (user-provided API key, GPT-4o)
   - Anthropic (user-provided API key, Claude Sonnet via `@anthropic-ai/sdk`)
 - **Dev/Prod Split**: In development, Vite dev server runs as middleware with HMR. In production, pre-built static files are served from `dist/public/`
+- **Email**: `server/email.ts` — HTML email template builder for daily stock analysis emails (dark theme with gold accents)
+- **Scheduler**: `server/scheduler.ts` — Daily scheduled job at 10:00 UTC (6pm GMT+8) to run AI analysis on users' favourite stocks and send email digests
 
 ### Data Storage
 - **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts` (main schema) and `shared/models/chat.ts` (conversation/message models)
 - **Tables**:
-  - `users` — basic user table with id (UUID), username, password
+  - `users` — user table with id (UUID), email, password (bcrypt hashed), disabled flag, lastIp, lastLoginAt, requestCount
   - `conversations` — chat conversations with title and timestamp
   - `messages` — chat messages linked to conversations with role, content, timestamp
+  - `analysis_logs` — tracks AI analysis requests per user (email, symbol, IP, timestamp)
+  - `app_settings` — key-value settings store (rate limits, plan pricing, etc.)
+  - `blocked_ips` — auto-blocked IPs from failed login attempts
+  - `ip_rules` — admin-defined IP whitelist/blacklist ranges
+  - `user_favourites` — user's favourite stocks (userId, symbol, displayName) with unique constraint on userId+symbol
+  - `email_logs` — tracks sent/failed email digests (userEmail, subject, stocksIncluded, status, error)
 - **Migration**: Drizzle Kit with `db:push` command for schema synchronization
-- **In-Memory Fallback**: `server/storage.ts` has a `MemStorage` class for user operations (currently used instead of DB for users)
+
+### Favourite Stocks & Premium Feature
+- Admin can add up to 10 favourite stocks via the Dashboard (star button next to stock symbol)
+- Regular users see a "Coming Soon" premium teaser page at /premium
+- Two subscription tiers planned: Essential (5 stocks, configurable price) and Professional (10 stocks, configurable price)
+- Plan pricing stored in `app_settings` table as `plan_5_price` and `plan_10_price`
+- Admin can configure pricing from the Admin panel
+- Daily AI analysis emails sent at 6pm GMT+8 for users with favourites
+
+### API Routes (key endpoints)
+- `GET /api/favourites` — list user's favourite stocks (auth required)
+- `POST /api/favourites` — add favourite stock (auth required, admin-only for now)
+- `DELETE /api/favourites/:id` — remove favourite stock (auth required)
+- `POST /api/admin/trigger-email` — manually trigger daily email analysis (admin only)
+- `GET /api/admin/email-logs` — view email send history (admin only)
+- `GET /api/admin/plan-pricing` — get plan pricing config (admin only)
+- `PUT /api/admin/plan-pricing` — update plan pricing (admin only)
 
 ### Replit Integrations (server/replit_integrations/)
 Pre-built integration modules provided by Replit:
@@ -47,6 +72,7 @@ Pre-built integration modules provided by Replit:
 - **audio/**: Voice recording, speech-to-text, text-to-speech with AudioWorklet for browser playback
 - **image/**: Image generation using `gpt-image-1` model
 - **batch/**: Rate-limited batch processing utility with retries for bulk AI operations
+- **Gmail**: Connector for sending daily analysis emails (requires OAuth setup via Replit integrations)
 
 ### Build Process
 - Client: Vite builds to `dist/public/`
@@ -68,6 +94,10 @@ Pre-built integration modules provided by Replit:
 
 6. **Subdomain & domain**: In production, the app is served at `ai.dexterchia.com` (subdomain). Requests to `*.replit.app` are redirected to `ai.dexterchia.com`. The main `dexterchia.com` domain remains on the user's original hosting. No base path needed since the subdomain is dedicated to the terminal.
 
+7. **Favourite stocks**: Admin gets 10-stock limit. Regular users blocked (403) until subscription feature launches. Favourites stored in `user_favourites` table with unique userId+symbol constraint.
+
+8. **Daily email scheduler**: Runs at 10:00 UTC (6pm GMT+8 Malaysia time). Processes all users with favourites, fetches stock data from Yahoo Finance, runs AI analysis, builds HTML email, sends via Gmail integration. Manual trigger available via admin panel.
+
 ## External Dependencies
 
 ### APIs & Services
@@ -76,6 +106,7 @@ Pre-built integration modules provided by Replit:
 - **Anthropic API** (`@anthropic-ai/sdk`): Alternative AI provider for stock analysis
 - **TradingView**: Embedded chart widget loaded via CDN script
 - **Google Fonts**: Cormorant Garamond and Montserrat font families
+- **Gmail**: Email sending via Replit Gmail connector (OAuth integration, pending setup)
 
 ### Database
 - **PostgreSQL**: Required, connection via `DATABASE_URL` environment variable
@@ -101,3 +132,4 @@ Pre-built integration modules provided by Replit:
 - `cmdk`: Command palette component
 - `embla-carousel-react`: Carousel component
 - `date-fns`: Date formatting utilities
+- `bcryptjs`: Password hashing
