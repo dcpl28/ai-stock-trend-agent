@@ -1899,14 +1899,23 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
     try {
       const userId = req.session.userId!;
       const isAdmin = req.session.isAdmin;
-      if (!isAdmin) {
-        return res.status(403).json({ error: "Premium feature — coming soon" });
+
+      let maxFavourites = 0;
+      if (isAdmin) {
+        maxFavourites = 10;
+      } else {
+        const user = await storage.getUser(userId);
+        if (user?.subscriptionStatus === "active") {
+          maxFavourites = user.subscriptionPlan === "professional" ? 10 : 5;
+        } else {
+          return res.status(403).json({ error: "Premium subscription required. Subscribe to add favourite stocks." });
+        }
       }
+
       const { symbol, displayName } = req.body;
       if (!symbol || !displayName) {
         return res.status(400).json({ error: "Symbol and display name are required" });
       }
-      const maxFavourites = isAdmin ? 10 : 5;
       const count = await storage.getFavouriteCount(userId);
       if (count >= maxFavourites) {
         return res.status(400).json({ error: `Maximum of ${maxFavourites} favourite stocks reached` });
@@ -1982,6 +1991,203 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: "Failed to update pricing" });
+    }
+  });
+
+  app.get("/api/stripe/publishable-key", async (_req: Request, res: Response) => {
+    try {
+      const { getStripePublishableKey } = await import("./stripeClient");
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to get Stripe key" });
+    }
+  });
+
+  app.get("/api/stripe/products", async (_req: Request, res: Response) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT
+          p.id as product_id,
+          p.name as product_name,
+          p.description as product_description,
+          p.metadata as product_metadata,
+          pr.id as price_id,
+          pr.unit_amount,
+          pr.currency,
+          pr.recurring
+        FROM stripe.products p
+        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+        WHERE p.active = true
+        ORDER BY pr.unit_amount ASC
+      `);
+      const productsMap = new Map<string, any>();
+      for (const row of result.rows) {
+        const r = row as any;
+        if (!productsMap.has(r.product_id)) {
+          productsMap.set(r.product_id, {
+            id: r.product_id,
+            name: r.product_name,
+            description: r.product_description,
+            metadata: r.product_metadata,
+            prices: [],
+          });
+        }
+        if (r.price_id) {
+          productsMap.get(r.product_id).prices.push({
+            id: r.price_id,
+            unit_amount: r.unit_amount,
+            currency: r.currency,
+            recurring: r.recurring,
+          });
+        }
+      }
+      res.json({ products: Array.from(productsMap.values()) });
+    } catch (error: any) {
+      console.error("[STRIPE] Products query error:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  app.get("/api/subscription", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      if (!user.stripeSubscriptionId || !user.subscriptionStatus) {
+        return res.json({ subscription: null });
+      }
+
+      const stockLimit = user.subscriptionPlan === "professional" ? 10 : 5;
+      res.json({
+        subscription: {
+          id: user.stripeSubscriptionId,
+          plan: user.subscriptionPlan,
+          status: user.subscriptionStatus,
+          stockLimit,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch subscription" });
+    }
+  });
+
+  app.post("/api/checkout", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { priceId } = req.body;
+      if (!priceId) return res.status(400).json({ error: "Price ID required" });
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId: user.id },
+        });
+        await storage.updateUserStripeInfo(user.id, { stripeCustomerId: customer.id });
+        customerId = customer.id;
+      }
+
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ["card"],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        success_url: `${baseUrl}/premium?success=true`,
+        cancel_url: `${baseUrl}/premium?canceled=true`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("[STRIPE] Checkout error:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  app.post("/api/stripe/portal", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || !user.stripeCustomerId) {
+        return res.status(400).json({ error: "No subscription found" });
+      }
+
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
+
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${baseUrl}/premium`,
+      });
+
+      res.json({ url: portalSession.url });
+    } catch (error: any) {
+      console.error("[STRIPE] Portal error:", error);
+      res.status(500).json({ error: "Failed to create portal session" });
+    }
+  });
+
+  app.post("/api/stripe/sync-subscription", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || !user.stripeCustomerId) {
+        return res.json({ subscription: null });
+      }
+
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+
+      const subscriptions = await stripe.subscriptions.list({
+        customer: user.stripeCustomerId,
+        status: "active",
+        limit: 1,
+      });
+
+      if (subscriptions.data.length > 0) {
+        const sub = subscriptions.data[0];
+        const priceId = sub.items.data[0]?.price?.id;
+
+        let planType = "essential";
+        if (priceId) {
+          const price = await stripe.prices.retrieve(priceId);
+          const product = await stripe.products.retrieve(price.product as string);
+          planType = (product.metadata?.plan_type) || "essential";
+        }
+
+        await storage.updateUserStripeInfo(user.id, {
+          stripeSubscriptionId: sub.id,
+          subscriptionPlan: planType,
+          subscriptionStatus: sub.status,
+        });
+
+        const stockLimit = planType === "professional" ? 10 : 5;
+        return res.json({
+          subscription: {
+            id: sub.id,
+            plan: planType,
+            status: sub.status,
+            stockLimit,
+          },
+        });
+      } else {
+        await storage.updateUserStripeInfo(user.id, {
+          stripeSubscriptionId: undefined,
+          subscriptionPlan: null,
+          subscriptionStatus: null,
+        });
+        return res.json({ subscription: null });
+      }
+    } catch (error: any) {
+      console.error("[STRIPE] Sync error:", error);
+      res.status(500).json({ error: "Failed to sync subscription" });
     }
   });
 

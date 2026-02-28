@@ -37,6 +37,8 @@ export interface IStorage {
   getAllUsersWithFavourites(): Promise<{ user: User; favourites: UserFavourite[] }[]>;
   logEmail(userEmail: string, subject: string, stocksIncluded: string, status: string, error?: string): Promise<void>;
   getEmailLogs(limit?: number): Promise<EmailLog[]>;
+  updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; stripeSubscriptionId?: string; subscriptionPlan?: string | null; subscriptionStatus?: string | null }): Promise<User | undefined>;
+  getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -252,6 +254,21 @@ export class DatabaseStorage implements IStorage {
 
   async getEmailLogs(limit: number = 50): Promise<EmailLog[]> {
     return db.select().from(emailLogs).orderBy(desc(emailLogs.createdAt)).limit(limit);
+  }
+
+  async updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; stripeSubscriptionId?: string; subscriptionPlan?: string | null; subscriptionStatus?: string | null }): Promise<User | undefined> {
+    const updateData: any = {};
+    if (data.stripeCustomerId !== undefined) updateData.stripeCustomerId = data.stripeCustomerId;
+    if (data.stripeSubscriptionId !== undefined) updateData.stripeSubscriptionId = data.stripeSubscriptionId;
+    if (data.subscriptionPlan !== undefined) updateData.subscriptionPlan = data.subscriptionPlan;
+    if (data.subscriptionStatus !== undefined) updateData.subscriptionStatus = data.subscriptionStatus;
+    const [user] = await db.update(users).set(updateData).where(eq(users.id, userId)).returning();
+    return user;
+  }
+
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, customerId));
+    return user;
   }
 }
 
