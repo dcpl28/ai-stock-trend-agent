@@ -8,13 +8,14 @@ import {
   TrendingUp,
   BarChart3,
   Star,
-  Sparkles,
   ArrowLeft,
   Clock,
   LogOut,
   Bell,
   CheckCircle2,
   Zap,
+  MessageCircle,
+  ExternalLink,
 } from "lucide-react";
 
 export default function Premium() {
@@ -23,6 +24,8 @@ export default function Premium() {
   const [, navigate] = useLocation();
   const [plan5Price, setPlan5Price] = useState("5");
   const [plan10Price, setPlan10Price] = useState("10");
+  const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     fetch("/api/plan-pricing")
@@ -32,6 +35,20 @@ export default function Premium() {
           setPlan5Price(data.plan5Price || "5");
           setPlan10Price(data.plan10Price || "10");
         }
+      })
+      .catch(() => {});
+
+    fetch("/api/whatsapp-link")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.url) setWhatsappUrl(data.url);
+      })
+      .catch(() => {});
+
+    fetch("/api/subscription")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.subscription) setSubscription(data.subscription);
       })
       .catch(() => {});
   }, []);
@@ -91,13 +108,20 @@ export default function Premium() {
           <p className="text-muted-foreground font-light tracking-wide text-sm max-w-lg mx-auto">
             {t("premiumSubtitle")}
           </p>
-          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-5 py-2 mt-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-xs uppercase tracking-widest font-medium text-primary" data-testid="badge-coming-soon">
-              {t("comingSoon")}
-            </span>
-          </div>
         </header>
+
+        {subscription && (
+          <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-6 max-w-md mx-auto text-center space-y-2" data-testid="card-active-subscription">
+            <CheckCircle2 className="w-8 h-8 text-green-400 mx-auto" />
+            <h3 className="text-lg font-serif text-foreground">{t("yourSubscription")}</h3>
+            <p className="text-sm text-green-400 font-medium">
+              {t("activePlan")}: {subscription.plan === "professional" ? t("planProName") : t("planBasicName")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("expiresOn")}: {new Date(subscription.expiresAt).toLocaleDateString()}
+            </p>
+          </div>
+        )}
 
         <div className="text-center space-y-3 max-w-2xl mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -115,15 +139,10 @@ export default function Premium() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           <div className="bg-card/50 border border-primary/10 rounded-xl p-6 space-y-5 hover:border-primary/30 transition-colors" data-testid="card-plan-basic">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-primary/70" />
-                <span className="text-xs uppercase tracking-widest font-medium text-muted-foreground">
-                  {t("planBasicName")}
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 bg-card/80 border border-white/5 rounded-full px-3 py-1">
-                {t("comingSoon")}
+            <div className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary/70" />
+              <span className="text-xs uppercase tracking-widest font-medium text-muted-foreground">
+                {t("planBasicName")}
               </span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -154,13 +173,11 @@ export default function Premium() {
             <div className="absolute top-0 right-0 bg-primary/20 text-primary text-[10px] uppercase tracking-widest font-medium px-4 py-1.5 rounded-bl-lg">
               {t("popular")}
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-primary" />
-                <span className="text-xs uppercase tracking-widest font-medium text-primary">
-                  {t("planProName")}
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              <span className="text-xs uppercase tracking-widest font-medium text-primary">
+                {t("planProName")}
+              </span>
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-serif text-foreground">${plan10Price}</span>
@@ -189,6 +206,30 @@ export default function Premium() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="text-center space-y-6 max-w-md mx-auto pt-4">
+          <p className="text-muted-foreground font-light text-sm">
+            {t("subscribeWhatsAppDesc")}
+          </p>
+
+          {whatsappUrl ? (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#20BD5A] text-white font-medium px-8 py-3.5 rounded-xl text-sm tracking-wide transition-colors shadow-lg shadow-[#25D366]/20"
+              data-testid="button-subscribe-whatsapp"
+            >
+              <MessageCircle className="w-5 h-5" />
+              {t("subscribeViaWhatsApp")}
+              <ExternalLink className="w-4 h-4 opacity-70" />
+            </a>
+          ) : (
+            <div className="text-xs text-muted-foreground/50 bg-card/30 border border-white/5 rounded-lg px-6 py-3">
+              WhatsApp contact not configured yet. Please check back soon.
+            </div>
+          )}
         </div>
 
         <div className="text-center space-y-4 max-w-md mx-auto pt-4">

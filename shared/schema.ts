@@ -11,10 +11,9 @@ export const users = pgTable("users", {
   lastIp: text("last_ip"),
   lastLoginAt: timestamp("last_login_at"),
   requestCount: integer("request_count").default(0).notNull(),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
   subscriptionPlan: text("subscription_plan"),
   subscriptionStatus: text("subscription_status"),
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

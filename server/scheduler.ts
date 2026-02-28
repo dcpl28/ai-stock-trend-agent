@@ -417,6 +417,25 @@ export async function runDailyAnalysis(): Promise<{
   return { success: errors.length === 0, usersProcessed, errors };
 }
 
+async function expireSubscriptions() {
+  try {
+    const expired = await storage.getExpiredSubscriptions();
+    if (expired.length === 0) {
+      console.log("[SCHEDULER] No expired subscriptions found");
+      return;
+    }
+    for (const user of expired) {
+      console.log(`[SCHEDULER] Expiring subscription for ${user.email} (plan: ${user.subscriptionPlan}, expired: ${user.subscriptionExpiresAt})`);
+      await storage.updateSubscription(user.id, {
+        subscriptionStatus: "expired",
+      });
+    }
+    console.log(`[SCHEDULER] Expired ${expired.length} subscription(s)`);
+  } catch (err: any) {
+    console.error("[SCHEDULER] Error checking expired subscriptions:", err);
+  }
+}
+
 let schedulerInterval: NodeJS.Timeout | null = null;
 let lastRunDate: string | null = null;
 
@@ -435,6 +454,10 @@ export function startScheduler() {
 
     if (utcHour === 10 && utcMinute === 0 && lastRunDate !== todayStr) {
       lastRunDate = todayStr;
+      console.log("[SCHEDULER] Checking for expired subscriptions...");
+      expireSubscriptions().catch((err) =>
+        console.error("[SCHEDULER] Expiry check error:", err),
+      );
       console.log("[SCHEDULER] Triggering daily analysis at 10:00 UTC");
       runDailyAnalysis().catch((err) =>
         console.error("[SCHEDULER] Unhandled error:", err),

@@ -564,6 +564,9 @@ export async function registerRoutes(
           lastIp: u.lastIp,
           lastLoginAt: u.lastLoginAt,
           requestCount: u.requestCount,
+          subscriptionPlan: u.subscriptionPlan,
+          subscriptionStatus: u.subscriptionStatus,
+          subscriptionExpiresAt: u.subscriptionExpiresAt,
         })),
       );
     } catch (error: any) {
@@ -1994,79 +1997,27 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
     }
   });
 
-  app.get("/api/stripe/publishable-key", async (_req: Request, res: Response) => {
-    try {
-      const { getStripePublishableKey } = await import("./stripeClient");
-      const key = await getStripePublishableKey();
-      res.json({ publishableKey: key });
-    } catch (error: any) {
-      res.status(500).json({ error: "Failed to get Stripe key" });
-    }
-  });
-
-  app.get("/api/stripe/products", async (_req: Request, res: Response) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const result = await db.execute(sql`
-        SELECT
-          p.id as product_id,
-          p.name as product_name,
-          p.description as product_description,
-          p.metadata as product_metadata,
-          pr.id as price_id,
-          pr.unit_amount,
-          pr.currency,
-          pr.recurring
-        FROM stripe.products p
-        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
-        WHERE p.active = true
-        ORDER BY pr.unit_amount ASC
-      `);
-      const productsMap = new Map<string, any>();
-      for (const row of result.rows) {
-        const r = row as any;
-        if (!productsMap.has(r.product_id)) {
-          productsMap.set(r.product_id, {
-            id: r.product_id,
-            name: r.product_name,
-            description: r.product_description,
-            metadata: r.product_metadata,
-            prices: [],
-          });
-        }
-        if (r.price_id) {
-          productsMap.get(r.product_id).prices.push({
-            id: r.price_id,
-            unit_amount: r.unit_amount,
-            currency: r.currency,
-            recurring: r.recurring,
-          });
-        }
-      }
-      res.json({ products: Array.from(productsMap.values()) });
-    } catch (error: any) {
-      console.error("[STRIPE] Products query error:", error);
-      res.status(500).json({ error: "Failed to fetch products" });
-    }
-  });
-
   app.get("/api/subscription", requireAuth, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      if (!user.stripeSubscriptionId || !user.subscriptionStatus) {
+      if (!user.subscriptionPlan || user.subscriptionStatus !== "active") {
+        return res.json({ subscription: null });
+      }
+
+      if (user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) < new Date()) {
+        await storage.updateSubscription(user.id, { subscriptionStatus: "expired" });
         return res.json({ subscription: null });
       }
 
       const stockLimit = user.subscriptionPlan === "professional" ? 10 : 5;
       res.json({
         subscription: {
-          id: user.stripeSubscriptionId,
           plan: user.subscriptionPlan,
           status: user.subscriptionStatus,
           stockLimit,
+          expiresAt: user.subscriptionExpiresAt,
         },
       });
     } catch (error: any) {
@@ -2074,120 +2025,120 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
     }
   });
 
-  app.post("/api/checkout", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/admin/subscriptions", requireAdmin, async (_req: Request, res: Response) => {
     try {
-      const { priceId } = req.body;
-      if (!priceId) return res.status(400).json({ error: "Price ID required" });
+      const allUsers = await storage.getAllUsers();
+      const subscriptions = allUsers.map(u => ({
+        id: u.id,
+        email: u.email,
+        subscriptionPlan: u.subscriptionPlan,
+        subscriptionStatus: u.subscriptionStatus,
+        subscriptionExpiresAt: u.subscriptionExpiresAt,
+      }));
+      res.json(subscriptions);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch subscriptions" });
+    }
+  });
 
-      const user = await storage.getUser(req.session.userId!);
+  app.post("/api/admin/subscriptions/:userId/approve", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const { plan, months } = req.body;
+
+      if (!plan || !["essential", "professional"].includes(plan)) {
+        return res.status(400).json({ error: "Invalid plan. Must be 'essential' or 'professional'" });
+      }
+
+      const durationMonths = months || 1;
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
+
+      const user = await storage.updateSubscription(userId, {
+        subscriptionPlan: plan,
+        subscriptionStatus: "active",
+        subscriptionExpiresAt: expiresAt,
+      });
+
+      if (!user) return res.status(404).json({ error: "User not found" });
+      res.json({ success: true, user: { id: user.id, email: user.email, subscriptionPlan: user.subscriptionPlan, subscriptionStatus: user.subscriptionStatus, subscriptionExpiresAt: user.subscriptionExpiresAt } });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to approve subscription" });
+    }
+  });
+
+  app.post("/api/admin/subscriptions/:userId/renew", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const { months } = req.body;
+      const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      const { getUncachableStripeClient } = await import("./stripeClient");
-      const stripe = await getUncachableStripeClient();
-
-      let customerId = user.stripeCustomerId;
-      if (!customerId) {
-        const customer = await stripe.customers.create({
-          email: user.email,
-          metadata: { userId: user.id },
-        });
-        await storage.updateUserStripeInfo(user.id, { stripeCustomerId: customer.id });
-        customerId = customer.id;
-      }
-
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        payment_method_types: ["card"],
-        line_items: [{ price: priceId, quantity: 1 }],
-        mode: "subscription",
-        success_url: `${baseUrl}/premium?success=true`,
-        cancel_url: `${baseUrl}/premium?canceled=true`,
-      });
-
-      res.json({ url: session.url });
-    } catch (error: any) {
-      console.error("[STRIPE] Checkout error:", error);
-      res.status(500).json({ error: "Failed to create checkout session" });
-    }
-  });
-
-  app.post("/api/stripe/portal", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const user = await storage.getUser(req.session.userId!);
-      if (!user || !user.stripeCustomerId) {
-        return res.status(400).json({ error: "No subscription found" });
-      }
-
-      const { getUncachableStripeClient } = await import("./stripeClient");
-      const stripe = await getUncachableStripeClient();
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
-
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: user.stripeCustomerId,
-        return_url: `${baseUrl}/premium`,
-      });
-
-      res.json({ url: portalSession.url });
-    } catch (error: any) {
-      console.error("[STRIPE] Portal error:", error);
-      res.status(500).json({ error: "Failed to create portal session" });
-    }
-  });
-
-  app.post("/api/stripe/sync-subscription", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const user = await storage.getUser(req.session.userId!);
-      if (!user || !user.stripeCustomerId) {
-        return res.json({ subscription: null });
-      }
-
-      const { getUncachableStripeClient } = await import("./stripeClient");
-      const stripe = await getUncachableStripeClient();
-
-      const subscriptions = await stripe.subscriptions.list({
-        customer: user.stripeCustomerId,
-        status: "active",
-        limit: 1,
-      });
-
-      if (subscriptions.data.length > 0) {
-        const sub = subscriptions.data[0];
-        const priceId = sub.items.data[0]?.price?.id;
-
-        let planType = "essential";
-        if (priceId) {
-          const price = await stripe.prices.retrieve(priceId);
-          const product = await stripe.products.retrieve(price.product as string);
-          planType = (product.metadata?.plan_type) || "essential";
-        }
-
-        await storage.updateUserStripeInfo(user.id, {
-          stripeSubscriptionId: sub.id,
-          subscriptionPlan: planType,
-          subscriptionStatus: sub.status,
-        });
-
-        const stockLimit = planType === "professional" ? 10 : 5;
-        return res.json({
-          subscription: {
-            id: sub.id,
-            plan: planType,
-            status: sub.status,
-            stockLimit,
-          },
-        });
+      const durationMonths = months || 1;
+      let expiresAt: Date;
+      if (user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) > new Date()) {
+        expiresAt = new Date(user.subscriptionExpiresAt);
       } else {
-        await storage.updateUserStripeInfo(user.id, {
-          stripeSubscriptionId: undefined,
-          subscriptionPlan: null,
-          subscriptionStatus: null,
-        });
-        return res.json({ subscription: null });
+        expiresAt = new Date();
       }
+      expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
+
+      const updated = await storage.updateSubscription(userId, {
+        subscriptionStatus: "active",
+        subscriptionExpiresAt: expiresAt,
+      });
+
+      res.json({ success: true, user: { id: updated!.id, email: updated!.email, subscriptionPlan: updated!.subscriptionPlan, subscriptionStatus: updated!.subscriptionStatus, subscriptionExpiresAt: updated!.subscriptionExpiresAt } });
     } catch (error: any) {
-      console.error("[STRIPE] Sync error:", error);
-      res.status(500).json({ error: "Failed to sync subscription" });
+      res.status(500).json({ error: "Failed to renew subscription" });
+    }
+  });
+
+  app.post("/api/admin/subscriptions/:userId/cancel", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const updated = await storage.updateSubscription(userId, {
+        subscriptionStatus: "cancelled",
+        subscriptionPlan: null,
+        subscriptionExpiresAt: null,
+      });
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to cancel subscription" });
+    }
+  });
+
+  app.get("/api/admin/whatsapp", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const number = await storage.getSetting("whatsapp_number");
+      const message = await storage.getSetting("whatsapp_message");
+      res.json({ number: number || "", message: message || "" });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch WhatsApp settings" });
+    }
+  });
+
+  app.put("/api/admin/whatsapp", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { number, message } = req.body;
+      if (number !== undefined) await storage.setSetting("whatsapp_number", String(number));
+      if (message !== undefined) await storage.setSetting("whatsapp_message", String(message));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to update WhatsApp settings" });
+    }
+  });
+
+  app.get("/api/whatsapp-link", async (_req: Request, res: Response) => {
+    try {
+      const number = await storage.getSetting("whatsapp_number");
+      const message = await storage.getSetting("whatsapp_message");
+      if (!number) return res.json({ url: null });
+      const encodedMsg = encodeURIComponent(message || "Hi, I'm interested in subscribing to M+ Global Pro Terminal premium plan.");
+      res.json({ url: `https://wa.me/${number}?text=${encodedMsg}` });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to generate WhatsApp link" });
     }
   });
 
