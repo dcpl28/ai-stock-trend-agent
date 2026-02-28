@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -73,3 +73,33 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const userFavourites = pgTable("user_favourites", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id").notNull(),
+  symbol: text("symbol").notNull(),
+  displayName: text("display_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  unique("user_favourites_user_symbol").on(table.userId, table.symbol),
+]);
+
+export const insertFavouriteSchema = createInsertSchema(userFavourites).pick({
+  symbol: true,
+  displayName: true,
+});
+
+export type InsertFavourite = z.infer<typeof insertFavouriteSchema>;
+export type UserFavourite = typeof userFavourites.$inferSelect;
+
+export const emailLogs = pgTable("email_logs", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userEmail: text("user_email").notNull(),
+  subject: text("subject").notNull(),
+  stocksIncluded: text("stocks_included").notNull(),
+  status: text("status").notNull(),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type EmailLog = typeof emailLogs.$inferSelect;

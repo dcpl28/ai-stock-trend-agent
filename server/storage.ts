@@ -1,6 +1,6 @@
-import { type User, type InsertUser, users, analysisLogs, type AnalysisLog, appSettings, blockedIps, type BlockedIp, ipRules, type IpRule } from "@shared/schema";
+import { type User, type InsertUser, users, analysisLogs, type AnalysisLog, appSettings, blockedIps, type BlockedIp, ipRules, type IpRule, userFavourites, type UserFavourite, emailLogs, type EmailLog } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, gte } from "drizzle-orm";
+import { eq, sql, desc, gte, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 const SALT_ROUNDS = 10;
@@ -30,6 +30,13 @@ export interface IStorage {
   addIpRule(type: string, startIp: string, endIp: string, description?: string): Promise<IpRule>;
   deleteIpRule(id: number): Promise<void>;
   isIpAllowed(ip: string): Promise<{ allowed: boolean; reason?: string }>;
+  getFavourites(userId: string): Promise<UserFavourite[]>;
+  addFavourite(userId: string, symbol: string, displayName: string): Promise<UserFavourite>;
+  removeFavourite(id: number, userId: string): Promise<void>;
+  getFavouriteCount(userId: string): Promise<number>;
+  getAllUsersWithFavourites(): Promise<{ user: User; favourites: UserFavourite[] }[]>;
+  logEmail(userEmail: string, subject: string, stocksIncluded: string, status: string, error?: string): Promise<void>;
+  getEmailLogs(limit?: number): Promise<EmailLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -207,6 +214,44 @@ export class DatabaseStorage implements IStorage {
     }
 
     return { allowed: true };
+  }
+
+  async getFavourites(userId: string): Promise<UserFavourite[]> {
+    return db.select().from(userFavourites).where(eq(userFavourites.userId, userId)).orderBy(desc(userFavourites.createdAt));
+  }
+
+  async addFavourite(userId: string, symbol: string, displayName: string): Promise<UserFavourite> {
+    const [fav] = await db.insert(userFavourites).values({ userId, symbol, displayName }).returning();
+    return fav;
+  }
+
+  async removeFavourite(id: number, userId: string): Promise<void> {
+    await db.delete(userFavourites).where(and(eq(userFavourites.id, id), eq(userFavourites.userId, userId)));
+  }
+
+  async getFavouriteCount(userId: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)::int` }).from(userFavourites).where(eq(userFavourites.userId, userId));
+    return result[0]?.count || 0;
+  }
+
+  async getAllUsersWithFavourites(): Promise<{ user: User; favourites: UserFavourite[] }[]> {
+    const allUsers = await db.select().from(users).where(eq(users.disabled, false));
+    const results: { user: User; favourites: UserFavourite[] }[] = [];
+    for (const user of allUsers) {
+      const favourites = await this.getFavourites(user.id);
+      if (favourites.length > 0) {
+        results.push({ user, favourites });
+      }
+    }
+    return results;
+  }
+
+  async logEmail(userEmail: string, subject: string, stocksIncluded: string, status: string, error?: string): Promise<void> {
+    await db.insert(emailLogs).values({ userEmail, subject, stocksIncluded, status, error: error || null });
+  }
+
+  async getEmailLogs(limit: number = 50): Promise<EmailLog[]> {
+    return db.select().from(emailLogs).orderBy(desc(emailLogs.createdAt)).limit(limit);
   }
 }
 

@@ -1885,5 +1885,83 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
     }
   });
 
+  app.get("/api/favourites", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const favourites = await storage.getFavourites(userId);
+      res.json(favourites);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch favourites" });
+    }
+  });
+
+  app.post("/api/favourites", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const isAdmin = req.session.isAdmin;
+      if (!isAdmin) {
+        return res.status(403).json({ error: "Premium feature — coming soon" });
+      }
+      const { symbol, displayName } = req.body;
+      if (!symbol || !displayName) {
+        return res.status(400).json({ error: "Symbol and display name are required" });
+      }
+      const maxFavourites = isAdmin ? 10 : 5;
+      const count = await storage.getFavouriteCount(userId);
+      if (count >= maxFavourites) {
+        return res.status(400).json({ error: `Maximum of ${maxFavourites} favourite stocks reached` });
+      }
+      const favourite = await storage.addFavourite(userId, symbol, displayName);
+      res.json(favourite);
+    } catch (error: any) {
+      if (error.code === "23505") {
+        return res.status(400).json({ error: "Stock already in favourites" });
+      }
+      res.status(500).json({ error: "Failed to add favourite" });
+    }
+  });
+
+  app.delete("/api/favourites/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      await storage.removeFavourite(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to remove favourite" });
+    }
+  });
+
+  app.get("/api/admin/email-logs", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const logs = await storage.getEmailLogs(100);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch email logs" });
+    }
+  });
+
+  app.get("/api/admin/plan-pricing", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const plan5Price = await storage.getSetting("plan_5_price") || "5";
+      const plan10Price = await storage.getSetting("plan_10_price") || "10";
+      res.json({ plan5Price, plan10Price });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch pricing" });
+    }
+  });
+
+  app.put("/api/admin/plan-pricing", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { plan5Price, plan10Price } = req.body;
+      if (plan5Price !== undefined) await storage.setSetting("plan_5_price", String(plan5Price));
+      if (plan10Price !== undefined) await storage.setSetting("plan_10_price", String(plan10Price));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to update pricing" });
+    }
+  });
+
   return httpServer;
 }
