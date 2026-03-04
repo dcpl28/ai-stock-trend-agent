@@ -25,7 +25,7 @@ async function resolveYahooSymbol(symbol: string): Promise<string> {
     const ticker = symbol.replace("KLSE:", "").replace("MYX:", "").toUpperCase();
     if (/^\d+$/.test(ticker)) return `${ticker}.KL`;
     try {
-      const searchResult: any = await yahooFinance.search(ticker);
+      const searchResult: any = await yahooFinance.search(ticker, {}, { validateResult: false });
       const match = searchResult?.quotes?.find(
         (q: any) => q.exchange === "KLS" || q.symbol?.endsWith(".KL"),
       );
@@ -86,7 +86,7 @@ async function analyzeStock(
     const yahooSymbol = await resolveYahooSymbol(symbol);
     console.log(`[SCHEDULER] Analyzing ${symbol} (${yahooSymbol})...`);
 
-    const quote: any = await yahooFinance.quote(yahooSymbol);
+    const quote: any = await yahooFinance.quote(yahooSymbol, {}, { validateResult: false });
     if (!quote) {
       console.log(`[SCHEDULER] No quote data for ${symbol}`);
       return null;
@@ -98,7 +98,7 @@ async function analyzeStock(
         .split("T")[0],
       period2: new Date().toISOString().split("T")[0],
       interval: "1d",
-    });
+    }, { validateResult: false });
 
     const rawQuotes = chartResult?.quotes || [];
     const candles = rawQuotes
@@ -201,7 +201,7 @@ MA Alignment: Price ${currentPrice > (sma20 ?? 0) ? "ABOVE" : "BELOW"} SMA20, ${
       .join("\n");
 
     const companyName = quote.shortName || quote.longName || symbol;
-    const currency = quote.currency || "USD";
+    const currency = quote.currency || quote.financialCurrency || "MYR";
 
     const prompt = `You are an expert stock market technical analyst. Analyze ${symbol} (${companyName}) and provide a BRIEF analysis suitable for a daily email digest.
 
