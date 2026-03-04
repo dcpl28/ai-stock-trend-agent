@@ -8,7 +8,7 @@ import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { FavouriteButton } from "@/components/FavouriteButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle, ArrowLeft, Star, X, Lock } from "lucide-react";
+import { Search, Diamond, Crown, Loader2, BrainCircuit, Info, LogOut, Clock, Settings, Scan, AlertTriangle, ArrowLeft, Star, X, Lock, Mail } from "lucide-react";
 import { PromotionalMessage } from '@/components/PromotionalMessage';
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -481,6 +481,12 @@ export default function Dashboard() {
                    <p className="text-[10px] text-primary/50 mt-1 group-hover:text-primary/70 transition-colors">
                      {t("unlockFavouritesDesc")}
                    </p>
+                   <div className="flex items-center justify-center gap-1.5 mt-3 pt-3 border-t border-primary/10">
+                     <Mail className="w-3 h-3 text-primary/30 group-hover:text-primary/50 transition-colors" />
+                     <span className="text-[9px] text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">
+                       {t("favouritesEmailRemarkLocked")}
+                     </span>
+                   </div>
                  </button>
                ) : favourites.length === 0 ? (
                  <p className="text-xs text-muted-foreground/50 font-light py-4 text-center" data-testid="text-no-favourites">
@@ -529,6 +535,14 @@ export default function Dashboard() {
                        </div>
                      </div>
                    ))}
+                 </div>
+               )}
+               {canUseFavourites && (
+                 <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/[0.04]" data-testid="text-favourites-email-remark">
+                   <Mail className="w-3 h-3 text-primary/40 shrink-0" />
+                   <span className="text-[9px] text-muted-foreground/40 leading-tight">
+                     {t("favouritesEmailRemarkActive")}
+                   </span>
                  </div>
                )}
              </div>
