@@ -146,7 +146,7 @@ export function buildAnalysisEmailHtml(
           <tr>
             <td style="padding: 32px 24px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
               <p style="margin: 0 0 4px 0; color: #D4AF37; font-size: 10px; text-transform: uppercase; letter-spacing: 3px; font-family: 'Montserrat', Arial, sans-serif;">
-                M+ Global Pro Terminal
+                AI Stock Trend Terminal
               </p>
               <h1 style="margin: 8px 0; color: #ffffff; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 500;">
                 Daily AI Stock Analysis
@@ -179,7 +179,7 @@ export function buildAnalysisEmailHtml(
                 This analysis is AI-generated and does not constitute financial advice. For professional guidance, please contact Dexter Chia.
               </p>
               <p style="margin: 12px 0 0 0; color: #4b5563; font-size: 10px; font-family: 'Montserrat', Arial, sans-serif;">
-                M+ Global Pro Terminal &bull; ai.dexterchia.com
+                AI Stock Trend Analysis &bull; ai.dexterchia.com
               </p>
             </td>
           </tr>
