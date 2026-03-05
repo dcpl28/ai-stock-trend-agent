@@ -58,7 +58,7 @@ export async function sendGmail(to: string, subject: string, htmlBody: string): 
     const gmail = await getUncachableGmailClient();
 
     const messageParts = [
-      `From: "M+ Global Pro Terminal" <ai-noreply@dexterchia.com>`,
+      `From: "Dexter's AI Analysis" <ai-noreply@dexterchia.com>`,
       `To: ${to}`,
       `Subject: ${encodeSubject(subject)}`,
       'MIME-Version: 1.0',
