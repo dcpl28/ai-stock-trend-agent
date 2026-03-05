@@ -47,19 +47,26 @@ async function getUncachableGmailClient() {
   return google.gmail({ version: 'v1', auth: oauth2Client });
 }
 
+function encodeSubject(subject: string): string {
+  if (/^[\x20-\x7E]*$/.test(subject)) return subject;
+  const encoded = Buffer.from(subject, 'utf-8').toString('base64');
+  return `=?UTF-8?B?${encoded}?=`;
+}
+
 export async function sendGmail(to: string, subject: string, htmlBody: string): Promise<boolean> {
   try {
     const gmail = await getUncachableGmailClient();
 
     const messageParts = [
+      `From: "M+ Global Pro Terminal" <ai-noreply@dexterchia.com>`,
       `To: ${to}`,
-      `Subject: ${subject}`,
+      `Subject: ${encodeSubject(subject)}`,
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
       '',
       htmlBody,
     ];
-    const message = messageParts.join('\n');
+    const message = messageParts.join('\r\n');
 
     const encodedMessage = Buffer.from(message)
       .toString('base64')

@@ -3,8 +3,31 @@ import Anthropic from "@anthropic-ai/sdk";
 import YahooFinance from "yahoo-finance2";
 import { storage } from "./storage";
 import { buildAnalysisEmailHtml, type StockAnalysis } from "./email";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 const yahooFinance = new YahooFinance();
+
+const KLSE_NAME_TO_CODE: Record<string, string> = (() => {
+  try {
+    const raw = readFileSync(
+      join(__dirname, "..", "server", "klse-stocks.json"),
+      "utf8",
+    );
+    return JSON.parse(raw);
+  } catch {
+    try {
+      const raw = readFileSync(
+        join(process.cwd(), "server", "klse-stocks.json"),
+        "utf8",
+      );
+      return JSON.parse(raw);
+    } catch {
+      console.warn("[SCHEDULER] Could not load klse-stocks.json");
+      return {};
+    }
+  }
+})();
 
 const replitOpenai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -24,19 +47,40 @@ async function resolveYahooSymbol(symbol: string): Promise<string> {
   if (symbol.startsWith("KLSE:") || symbol.startsWith("MYX:")) {
     const ticker = symbol.replace("KLSE:", "").replace("MYX:", "").toUpperCase();
     if (/^\d+$/.test(ticker)) return `${ticker}.KL`;
+
+    const localCode = KLSE_NAME_TO_CODE[ticker];
+    if (localCode) return localCode;
+
+    const directSymbol = `${ticker}.KL`;
     try {
-      const searchResult: any = await yahooFinance.search(ticker, {}, { validateResult: false });
-      const match = searchResult?.quotes?.find(
-        (q: any) => q.exchange === "KLS" || q.symbol?.endsWith(".KL"),
-      );
-      if (match) return match.symbol;
+      const q: any = await yahooFinance.quote(directSymbol, {}, { validateResult: false });
+      if (q && q.symbol && q.regularMarketPrice)
+        return directSymbol;
     } catch {}
-    return `${ticker}.KL`;
+
+    const searchQueries = [ticker, `${ticker} Berhad`, `${ticker} Malaysia`];
+    for (const query of searchQueries) {
+      try {
+        const searchResult: any = await yahooFinance.search(query, {}, { validateResult: false });
+        const klseMatch = searchResult?.quotes?.find(
+          (q: any) => q.symbol?.endsWith(".KL") && q.quoteType === "EQUITY",
+        );
+        if (klseMatch) return klseMatch.symbol;
+      } catch {}
+    }
+
+    return directSymbol;
+  } else if (symbol.includes(":")) {
+    const exchange = symbol.split(":")[0].toUpperCase();
+    const ticker = symbol.split(":")[1];
+    if (exchange === "NASDAQ" || exchange === "NYSE") return ticker;
+    return ticker;
   }
-  if (symbol.startsWith("NASDAQ:"))
-    return symbol.replace("NASDAQ:", "").toUpperCase();
-  if (symbol.startsWith("NYSE:"))
-    return symbol.replace("NYSE:", "").toUpperCase();
+
+  const upperSymbol = symbol.toUpperCase();
+  const klseCode = KLSE_NAME_TO_CODE[upperSymbol];
+  if (klseCode) return klseCode;
+
   return symbol;
 }
 
@@ -121,7 +165,7 @@ async function analyzeStock(
         volume: q.volume || 0,
       }));
 
-    if (candles.length < 20) {
+    if (candles.length < 5) {
       console.log(`[SCHEDULER] Not enough data for ${symbol}: ${candles.length} candles`);
       return null;
     }
@@ -377,7 +421,7 @@ export async function runDailyAnalysis(): Promise<{
 
         const userName = user.email.split("@")[0];
         const htmlBody = buildAnalysisEmailHtml(analyses, userName);
-        const subject = `M+ Global Pro — Daily AI Analysis (${analyses.length} stock${analyses.length > 1 ? "s" : ""})`;
+        const subject = `Daily AI Stock Trend Analysis`;
 
         const sent = await sendEmail(user.email, subject, htmlBody);
 
