@@ -481,7 +481,22 @@ async function expireSubscriptions() {
 }
 
 let schedulerInterval: NodeJS.Timeout | null = null;
-let lastRunDate: string | null = null;
+
+async function getLastRunDate(): Promise<string | null> {
+  try {
+    return await storage.getSetting("scheduler_last_run_date");
+  } catch {
+    return null;
+  }
+}
+
+async function setLastRunDate(date: string): Promise<void> {
+  try {
+    await storage.setSetting("scheduler_last_run_date", date);
+  } catch (err) {
+    console.error("[SCHEDULER] Failed to save last run date:", err);
+  }
+}
 
 export function startScheduler() {
   if (schedulerInterval) {
@@ -490,14 +505,17 @@ export function startScheduler() {
 
   console.log("[SCHEDULER] Scheduler started. Daily run at 10:00 UTC (6pm GMT+8)");
 
-  const checkAndRun = () => {
+  const checkAndRun = async () => {
     const now = new Date();
     const utcHour = now.getUTCHours();
     const utcMinute = now.getUTCMinutes();
     const todayStr = now.toISOString().split("T")[0];
 
-    if (utcHour === 10 && utcMinute === 0 && lastRunDate !== todayStr) {
-      lastRunDate = todayStr;
+    if (utcHour === 10 && utcMinute <= 5) {
+      const lastRunDate = await getLastRunDate();
+      if (lastRunDate === todayStr) return;
+
+      await setLastRunDate(todayStr);
       console.log("[SCHEDULER] Checking for expired subscriptions...");
       expireSubscriptions().catch((err) =>
         console.error("[SCHEDULER] Expiry check error:", err),
