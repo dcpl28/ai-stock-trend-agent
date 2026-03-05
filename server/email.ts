@@ -82,7 +82,7 @@ export function buildAnalysisEmailHtml(
                 </p>
               </td>
               <td style="padding: 8px 12px; background: rgba(212, 175, 55, 0.05); border-radius: 6px; width: 33%;">
-                <p style="margin: 0; color: #9ca3af; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-family: 'Montserrat', Arial, sans-serif;">Conviction</p>
+                <p style="margin: 0; color: #9ca3af; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-family: 'Montserrat', Arial, sans-serif;">AI Conviction</p>
                 <p style="margin: 4px 0 0 0; color: ${confidenceColor}; font-size: 14px; font-weight: 600; font-family: 'Montserrat', Arial, sans-serif;">
                   ${a.confidence}%
                 </p>
@@ -163,7 +163,7 @@ export function buildAnalysisEmailHtml(
                 Hello ${userName},
               </p>
               <p style="margin: 8px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.6; font-family: 'Montserrat', Arial, sans-serif;">
-                Here is your daily AI analysis for your ${analyses.length} favourite stock${analyses.length > 1 ? "s" : ""} after today's market close.
+                Here is your daily AI analysis for your ${analyses.length} favourite stock${analyses.length > 1 ? "s" : ""}.
               </p>
             </td>
           </tr>
@@ -173,10 +173,10 @@ export function buildAnalysisEmailHtml(
           <tr>
             <td style="padding: 24px; text-align: center; border-top: 1px solid rgba(212, 175, 55, 0.1);">
               <p style="margin: 0 0 8px 0; color: #D4AF37; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; font-family: 'Montserrat', Arial, sans-serif;">
-                Powered by AI
+                Powered by Latest AI Model
               </p>
               <p style="margin: 0; color: #6b7280; font-size: 11px; line-height: 1.6; font-family: 'Montserrat', Arial, sans-serif;">
-                This analysis is AI-generated and does not constitute financial advice. For professional guidance, please contact Dexter Chia.
+                This analysis is AI-generated and does not constitute investment/financial advice. For professional guidance, please contact your Remisier - Dexter Chia.
               </p>
               <p style="margin: 12px 0 0 0; color: #4b5563; font-size: 10px; font-family: 'Montserrat', Arial, sans-serif;">
                 AI Stock Trend Analysis &bull; ai.dexterchia.com
