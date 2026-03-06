@@ -742,6 +742,17 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/ai-model", (_req, res) => {
+    const aiConfig = getAIProvider();
+    let model = "";
+    if (aiConfig.type === "anthropic") {
+      model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
+    } else {
+      model = process.env.OPENAI_MODEL || "gpt-5.2";
+    }
+    res.json({ model, provider: aiConfig.type });
+  });
+
   app.get("/api/search/:query", async (req, res) => {
     try {
       const { query } = req.params;

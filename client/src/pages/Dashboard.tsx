@@ -90,6 +90,7 @@ export default function Dashboard() {
   const { t, lang } = useI18n();
   const [, navigate] = useLocation();
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const [aiModelName, setAiModelName] = useState<string>("");
   const queryClient = useQueryClient();
 
   interface FavouriteEntry {
@@ -99,6 +100,10 @@ export default function Dashboard() {
     displayName: string;
     createdAt: string;
   }
+
+  useEffect(() => {
+    fetch("/api/ai-model").then(r => r.json()).then(d => setAiModelName(d.model)).catch(() => {});
+  }, []);
 
   const isSubscribed = subscriptionStatus === "active" && !!subscriptionPlan;
   const canUseFavourites = isAdmin || isSubscribed;
@@ -270,6 +275,11 @@ export default function Dashboard() {
             <span className={`flex items-center gap-1.5 font-mono text-xs ${timeLeft < 120000 ? 'text-red-400' : 'text-muted-foreground'}`} data-testid="text-session-timer">
               <Clock className="w-3 h-3" />
               {formatTime(timeLeft)}
+            </span>
+            <span className="text-primary/30">|</span>
+            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50" data-testid="text-ai-model">
+              <BrainCircuit className="w-3 h-3 text-primary/30" />
+              {t("latestAiModel")}: {aiModelName || "..."}
             </span>
           </div>
           <div className="flex items-center gap-2">
