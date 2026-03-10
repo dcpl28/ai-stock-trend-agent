@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Crown, Scan, TrendingUp, Trophy, Loader2, ArrowLeft, ArrowUpRight, ArrowDownRight, Filter, ChevronUp, ChevronDown } from "lucide-react";
+import { Crown, Scan, TrendingUp, TrendingDown, Trophy, Loader2, ArrowLeft, ArrowUpRight, ArrowDownRight, Filter, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useI18n, LanguageSwitcher } from "@/lib/i18n";
@@ -24,7 +24,7 @@ export default function Scanner() {
   const { t } = useI18n();
   const [, navigate] = useLocation();
   const [market, setMarket] = useState<"US" | "MY">("US");
-  const [scanType, setScanType] = useState<"ath" | "breakout">("ath");
+  const [scanType, setScanType] = useState<"ath" | "breakout" | "atl">("ath");
   const [selectedCriteria, setSelectedCriteria] = useState<string[]>([]);
   const [enabled, setEnabled] = useState(false);
   const [scanPage, setScanPage] = useState(1);
@@ -45,6 +45,8 @@ export default function Scanner() {
     { id: "above_sma200", label: t("aboveSma200"), group: "indicator" },
     { id: "ema20_above_sma200", label: t("ema20AboveSma200"), group: "indicator" },
     { id: "ema20_cross_sma200", label: t("ema20CrossSma200"), group: "indicator" },
+    { id: "rsi_oversold", label: t("rsiOversold"), group: "indicator" },
+    { id: "rsi_overbought", label: t("rsiOverbought"), group: "indicator" },
   ] as const;
 
   const handleSort = (key: SortKey) => {
@@ -105,10 +107,10 @@ export default function Scanner() {
     );
   };
 
-  const handleScanTypeChange = (type: "ath" | "breakout") => {
+  const handleScanTypeChange = (type: "ath" | "breakout" | "atl") => {
     setScanType(type);
     setEnabled(false);
-    if (type === "ath") {
+    if (type === "ath" || type === "atl") {
       setSelectedCriteria(prev => prev.filter(c =>
         INDICATOR_CRITERIA.some(ic => ic.id === c)
       ));
@@ -214,6 +216,18 @@ export default function Scanner() {
                   {t("allTimeHigh")}
                 </button>
                 <button
+                  onClick={() => handleScanTypeChange("atl")}
+                  className={`flex-1 py-2.5 text-xs uppercase tracking-widest font-medium rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    scanType === "atl"
+                      ? "bg-primary/20 text-primary border border-primary/30"
+                      : "bg-card/50 text-muted-foreground border border-white/5 hover:border-white/10"
+                  }`}
+                  data-testid="button-type-atl"
+                >
+                  <TrendingDown className="w-3.5 h-3.5" />
+                  {t("allTimeLow")}
+                </button>
+                <button
                   onClick={() => handleScanTypeChange("breakout")}
                   className={`flex-1 py-2.5 text-xs uppercase tracking-widest font-medium rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     scanType === "breakout"
@@ -243,7 +257,7 @@ export default function Scanner() {
                     <label
                       key={c.id}
                       className={`flex items-center gap-2.5 py-1.5 px-3 rounded-lg transition-all cursor-pointer text-xs ${
-                        scanType === "ath"
+                        scanType !== "breakout"
                           ? "opacity-30 cursor-not-allowed"
                           : selectedCriteria.includes(c.id)
                             ? "bg-primary/15 text-primary border border-primary/25"
@@ -254,8 +268,8 @@ export default function Scanner() {
                       <input
                         type="checkbox"
                         checked={selectedCriteria.includes(c.id)}
-                        onChange={() => scanType !== "ath" && toggleCriteria(c.id)}
-                        disabled={scanType === "ath"}
+                        onChange={() => scanType === "breakout" && toggleCriteria(c.id)}
+                        disabled={scanType !== "breakout"}
                         className="w-3.5 h-3.5 rounded border-white/20 bg-transparent accent-primary cursor-pointer disabled:cursor-not-allowed"
                       />
                       {c.label}
@@ -319,7 +333,7 @@ export default function Scanner() {
             <p className="text-sm font-light">
               {t("scanningMarket", {
                 market: market === "US" ? t("scanningUS") : t("scanningMY"),
-                type: scanType === "ath" ? t("scanningATH") : t("scanningBreakout"),
+                type: scanType === "ath" ? t("scanningATH") : scanType === "atl" ? t("scanningAtl") : t("scanningBreakout"),
               })}
             </p>
             <p className="text-xs text-muted-foreground/50 mt-1">{t("scanTimeTip")}</p>
@@ -351,8 +365,8 @@ export default function Scanner() {
           <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
             <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
               <h2 className="text-[10px] text-primary uppercase tracking-widest font-medium flex items-center gap-2">
-                {scanType === "ath" ? <Trophy className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
-                {results?.length || 0} {scanType === "ath" ? t("allTimeHigh") : t("breakout")} {t("stocksFound")}
+                {scanType === "ath" ? <Trophy className="w-3.5 h-3.5" /> : scanType === "atl" ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
+                {results?.length || 0} {scanType === "ath" ? t("allTimeHigh") : scanType === "atl" ? t("allTimeLow") : t("breakout")} {t("stocksFound")}
               </h2>
               <div className="flex items-center gap-3">
                 {totalPages > 1 && (

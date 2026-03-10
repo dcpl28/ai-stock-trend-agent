@@ -1622,6 +1622,21 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
     return ema;
   }
 
+  function calcRSI(closes: number[], period: number = 14): number | null {
+    if (closes.length < period + 1) return null;
+    let gains = 0, losses = 0;
+    for (let i = closes.length - period; i < closes.length; i++) {
+      const diff = closes[i] - closes[i - 1];
+      if (diff > 0) gains += diff;
+      else losses -= diff;
+    }
+    const avgGain = gains / period;
+    const avgLoss = losses / period;
+    if (avgLoss === 0) return 100;
+    const rs = avgGain / avgLoss;
+    return 100 - 100 / (1 + rs);
+  }
+
   function calcEMASeries(closes: number[], period: number): number[] {
     if (closes.length < period) return [];
     const k = 2 / (period + 1);
@@ -1661,6 +1676,8 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
             "above_sma200",
             "ema20_above_sma200",
             "ema20_cross_sma200",
+            "rsi_oversold",
+            "rsi_overbought",
           ].includes(c),
         );
       const chartDays =
@@ -1711,6 +1728,24 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
                   pctFromHigh < 0.5
                     ? `New 52-week high at ${currentPrice.toFixed(2)}`
                     : `${pctFromHigh.toFixed(1)}% from 52-week high (${quote.fiftyTwoWeekHigh.toFixed(2)})`,
+                );
+              } else {
+                return null;
+              }
+            }
+
+            if (type === "atl") {
+              if (!quote.fiftyTwoWeekLow) return null;
+              const pctFromLow =
+                ((currentPrice - quote.fiftyTwoWeekLow) /
+                  quote.fiftyTwoWeekLow) *
+                100;
+              if (pctFromLow <= 3) {
+                matched = true;
+                reasons.push(
+                  pctFromLow < 0.5
+                    ? `New 52-week low at ${currentPrice.toFixed(2)}`
+                    : `${pctFromLow.toFixed(1)}% from 52-week low (${quote.fiftyTwoWeekLow.toFixed(2)})`,
                 );
               } else {
                 return null;
@@ -1872,8 +1907,29 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
               }
             }
 
+            if (criteria.includes("rsi_oversold")) {
+              const rsi = calcRSI(closes);
+              if (rsi === null) return null;
+              if (rsi < 30) {
+                reasons.push(`RSI oversold (${rsi.toFixed(1)})`);
+              } else {
+                return null;
+              }
+            }
+
+            if (criteria.includes("rsi_overbought")) {
+              const rsi = calcRSI(closes);
+              if (rsi === null) return null;
+              if (rsi > 70) {
+                reasons.push(`RSI overbought (${rsi.toFixed(1)})`);
+              } else {
+                return null;
+              }
+            }
+
             if (
               (type === "ath" && reasons.length > 0) ||
+              (type === "atl" && reasons.length > 0) ||
               (type === "breakout" && matched)
             ) {
               return {
@@ -1885,6 +1941,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
                 volume: quote.regularMarketVolume || 0,
                 marketCap: quote.marketCap || 0,
                 fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || 0,
+                fiftyTwoWeekLow: quote.fiftyTwoWeekLow || 0,
                 currency: quote.currency || (market === "MY" ? "MYR" : "USD"),
                 reason: reasons.join(" · "),
               };

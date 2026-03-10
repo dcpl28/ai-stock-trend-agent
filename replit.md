@@ -94,7 +94,9 @@ Pre-built integration modules provided by Replit:
 
 6. **Subdomain & domain**: In production, the app is served at `ai.dexterchia.com` (subdomain). Requests to `*.replit.app` are redirected to `ai.dexterchia.com`. The main `dexterchia.com` domain remains on the user's original hosting. No base path needed since the subdomain is dedicated to the terminal.
 
-7. **Favourite stocks**: Admin gets 10-stock limit. Regular users blocked (403) until subscription feature launches. Favourites stored in `user_favourites` table with unique userId+symbol constraint.
+7. **Scanner**: Stock screener at /scanner supports 3 scan types (All-Time High, All-Time Low, Breakout) with criteria filters including breakout conditions (5-candle, 10-day, 3-day highs), technical indicators (EMA5, EMA20, SMA200, EMA20/SMA200 crossover), and RSI (oversold <30, overbought >70). Scans US and MY (KLSE) markets with batch processing and 5-minute cache.
+
+8. **Favourite stocks**: Admin gets 10-stock limit. Regular users blocked (403) until subscription feature launches. Favourites stored in `user_favourites` table with unique userId+symbol constraint.
 
 8. **Daily email scheduler**: Runs at 10:00 UTC (6pm GMT+8 Malaysia time). Processes all users with favourites, fetches stock data from Yahoo Finance, runs AI analysis, builds HTML email, sends via Gmail integration. Manual trigger available via admin panel. Protected against duplicate runs via in-memory lock flag (acquired before any async DB call), in-memory date cache, DB-persisted `scheduler_last_run_date` with 3-retry save logic.
 

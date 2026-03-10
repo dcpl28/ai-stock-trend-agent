@@ -89,6 +89,10 @@ const translations = {
     aboveSma200: "Above SMA 200",
     ema20AboveSma200: "EMA 20 above SMA 200",
     ema20CrossSma200: "EMA 20 cross SMA 200 (Golden Cross)",
+    rsiOversold: "RSI Oversold (< 30)",
+    rsiOverbought: "RSI Overbought (> 70)",
+    allTimeLow: "All-Time Low",
+    scanningAtl: "all-time lows",
 
     // Analysis Panel
     marketSentiment: "Market Sentiment",
@@ -399,6 +403,10 @@ const translations = {
     aboveSma200: "高于 SMA 200",
     ema20AboveSma200: "EMA 20 高于 SMA 200",
     ema20CrossSma200: "EMA 20 穿越 SMA 200（黄金交叉）",
+    rsiOversold: "RSI 超卖 (< 30)",
+    rsiOverbought: "RSI 超买 (> 70)",
+    allTimeLow: "历史新低",
+    scanningAtl: "历史新低",
 
     marketSentiment: "市场情绪",
     aiConvictionScore: "AI 确信度评分 (%)",
@@ -698,6 +706,10 @@ const translations = {
     aboveSma200: "Di atas SMA 200",
     ema20AboveSma200: "EMA 20 di atas SMA 200",
     ema20CrossSma200: "EMA 20 melintas SMA 200 (Silang Emas)",
+    rsiOversold: "RSI Terlebih Jual (< 30)",
+    rsiOverbought: "RSI Terlebih Beli (> 70)",
+    allTimeLow: "Paras Terendah",
+    scanningAtl: "paras terendah",
 
     marketSentiment: "Sentimen Pasaran",
     aiConvictionScore: "Skor Keyakinan AI (%)",
