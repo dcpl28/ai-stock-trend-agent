@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp, AlertTriangle, DollarSign, MessageCircle, CreditCard, RefreshCw } from "lucide-react";
+import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp, AlertTriangle, DollarSign, MessageCircle, CreditCard, RefreshCw, Star, ChevronDown, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface UserEntry {
@@ -108,6 +108,9 @@ export default function AdminConfig() {
   const [waNumberInput, setWaNumberInput] = useState("");
   const [waMessageInput, setWaMessageInput] = useState("");
   const [savingWa, setSavingWa] = useState(false);
+
+  const [allUserFavourites, setAllUserFavourites] = useState<Record<string, any[]>>({});
+  const [expandedFavUser, setExpandedFavUser] = useState<string | null>(null);
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return users;
@@ -284,6 +287,34 @@ export default function AdminConfig() {
         setWaNumberInput(data.number); setWaMessageInput(data.message);
       }
     } catch {}
+  };
+
+  const fetchUserFavourites = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/admin/user-favourites/${userId}`);
+      if (res.ok) {
+        const favs = await res.json();
+        setAllUserFavourites(prev => ({ ...prev, [userId]: favs }));
+      }
+    } catch {}
+  };
+
+  const adminDeleteFavourite = async (favId: number, userId: string) => {
+    try {
+      const res = await fetch(`/api/admin/user-favourites/${favId}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchUserFavourites(userId);
+      }
+    } catch {}
+  };
+
+  const toggleFavUser = (userId: string) => {
+    if (expandedFavUser === userId) {
+      setExpandedFavUser(null);
+    } else {
+      setExpandedFavUser(userId);
+      if (!allUserFavourites[userId]) fetchUserFavourites(userId);
+    }
   };
 
   const triggerEmailAnalysis = async () => {
@@ -976,6 +1007,54 @@ export default function AdminConfig() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="bg-card/40 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 shadow-2xl shadow-black/40">
+              <h2 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Star className="w-3.5 h-3.5 text-primary" /> User Watchlists
+              </h2>
+              <div className="space-y-1">
+                {users.map((user) => (
+                  <div key={`fav-${user.id}`}>
+                    <button
+                      onClick={() => toggleFavUser(user.id)}
+                      className="w-full flex items-center justify-between text-[11px] px-3 py-2 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer"
+                      data-testid={`button-expand-fav-${user.id}`}
+                    >
+                      <span className="text-foreground/80">{user.email}</span>
+                      {expandedFavUser === user.id ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+                    </button>
+                    {expandedFavUser === user.id && (
+                      <div className="ml-4 mt-1 mb-2 space-y-1">
+                        {!allUserFavourites[user.id] ? (
+                          <div className="text-[10px] text-muted-foreground/50 px-3 py-1"><Loader2 className="w-3 h-3 animate-spin inline mr-1" />Loading...</div>
+                        ) : allUserFavourites[user.id].length === 0 ? (
+                          <div className="text-[10px] text-muted-foreground/50 px-3 py-1">No watchlist stocks</div>
+                        ) : (
+                          allUserFavourites[user.id].map((fav: any) => (
+                            <div key={fav.id} className="flex items-center justify-between text-[11px] px-3 py-1.5 rounded-lg bg-background/20" data-testid={`row-admin-fav-${fav.id}`}>
+                              <div className="flex items-center gap-2">
+                                <Star className="w-3 h-3 text-primary" />
+                                <span className="text-foreground/80 font-medium">{fav.displayName || fav.symbol}</span>
+                                <span className="text-muted-foreground/40 text-[10px]">{fav.symbol}</span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => adminDeleteFavourite(fav.id, user.id)}
+                                className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
+                                data-testid={`button-admin-delete-fav-${fav.id}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

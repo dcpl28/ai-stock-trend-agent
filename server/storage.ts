@@ -33,6 +33,7 @@ export interface IStorage {
   getFavourites(userId: string): Promise<UserFavourite[]>;
   addFavourite(userId: string, symbol: string, displayName: string): Promise<UserFavourite>;
   removeFavourite(id: number, userId: string): Promise<void>;
+  adminRemoveFavourite(id: number): Promise<void>;
   getFavouriteCount(userId: string): Promise<number>;
   getAllUsersWithFavourites(): Promise<{ user: User; favourites: UserFavourite[] }[]>;
   logEmail(userEmail: string, subject: string, stocksIncluded: string, status: string, error?: string): Promise<void>;
@@ -230,6 +231,10 @@ export class DatabaseStorage implements IStorage {
 
   async removeFavourite(id: number, userId: string): Promise<void> {
     await db.delete(userFavourites).where(and(eq(userFavourites.id, id), eq(userFavourites.userId, userId)));
+  }
+
+  async adminRemoveFavourite(id: number): Promise<void> {
+    await db.delete(userFavourites).where(eq(userFavourites.id, id));
   }
 
   async getFavouriteCount(userId: string): Promise<number> {

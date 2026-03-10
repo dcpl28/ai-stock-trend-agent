@@ -481,20 +481,30 @@ async function expireSubscriptions() {
 }
 
 let schedulerInterval: NodeJS.Timeout | null = null;
+let isRunning = false;
+let inMemoryLastRunDate: string | null = null;
 
 async function getLastRunDate(): Promise<string | null> {
+  if (inMemoryLastRunDate) return inMemoryLastRunDate;
   try {
-    return await storage.getSetting("scheduler_last_run_date");
+    const dbDate = await storage.getSetting("scheduler_last_run_date");
+    if (dbDate) inMemoryLastRunDate = dbDate;
+    return dbDate;
   } catch {
-    return null;
+    return inMemoryLastRunDate;
   }
 }
 
 async function setLastRunDate(date: string): Promise<void> {
-  try {
-    await storage.setSetting("scheduler_last_run_date", date);
-  } catch (err) {
-    console.error("[SCHEDULER] Failed to save last run date:", err);
+  inMemoryLastRunDate = date;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await storage.setSetting("scheduler_last_run_date", date);
+      return;
+    } catch (err) {
+      console.error(`[SCHEDULER] Failed to save last run date (attempt ${attempt}/3):`, err);
+      if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt));
+    }
   }
 }
 
@@ -512,18 +522,35 @@ export function startScheduler() {
     const todayStr = now.toISOString().split("T")[0];
 
     if (utcHour === 10 && utcMinute <= 5) {
-      const lastRunDate = await getLastRunDate();
-      if (lastRunDate === todayStr) return;
+      if (isRunning) {
+        console.log("[SCHEDULER] Already running, skipping duplicate trigger");
+        return;
+      }
 
-      await setLastRunDate(todayStr);
-      console.log("[SCHEDULER] Checking for expired subscriptions...");
-      expireSubscriptions().catch((err) =>
-        console.error("[SCHEDULER] Expiry check error:", err),
-      );
-      console.log("[SCHEDULER] Triggering daily analysis at 10:00 UTC");
-      runDailyAnalysis().catch((err) =>
-        console.error("[SCHEDULER] Unhandled error:", err),
-      );
+      if (inMemoryLastRunDate === todayStr) return;
+
+      isRunning = true;
+      inMemoryLastRunDate = todayStr;
+
+      const lastRunDate = await getLastRunDate();
+      if (lastRunDate === todayStr) {
+        isRunning = false;
+        return;
+      }
+
+      try {
+        await setLastRunDate(todayStr);
+        console.log("[SCHEDULER] Checking for expired subscriptions...");
+        await expireSubscriptions().catch((err) =>
+          console.error("[SCHEDULER] Expiry check error:", err),
+        );
+        console.log("[SCHEDULER] Triggering daily analysis at 10:00 UTC");
+        await runDailyAnalysis().catch((err) =>
+          console.error("[SCHEDULER] Unhandled error:", err),
+        );
+      } finally {
+        isRunning = false;
+      }
     }
   };
 

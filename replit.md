@@ -32,7 +32,7 @@ Preferred communication style: Simple, everyday language.
   - Anthropic (user-provided API key, Claude Sonnet via `@anthropic-ai/sdk`)
 - **Dev/Prod Split**: In development, Vite dev server runs as middleware with HMR. In production, pre-built static files are served from `dist/public/`
 - **Email**: `server/email.ts` — HTML email template builder for daily stock analysis emails (dark theme with gold accents)
-- **Scheduler**: `server/scheduler.ts` — Daily scheduled job at 10:00 UTC (6pm GMT+8) to run AI analysis on users' favourite stocks and send email digests
+- **Scheduler**: `server/scheduler.ts` — Daily scheduled job at 10:00 UTC (6pm GMT+8) to run AI analysis on users' favourite stocks and send email digests. Protected against duplicate execution with in-memory lock + DB date check + retry logic
 
 ### Data Storage
 - **Database**: PostgreSQL with Drizzle ORM
@@ -96,7 +96,9 @@ Pre-built integration modules provided by Replit:
 
 7. **Favourite stocks**: Admin gets 10-stock limit. Regular users blocked (403) until subscription feature launches. Favourites stored in `user_favourites` table with unique userId+symbol constraint.
 
-8. **Daily email scheduler**: Runs at 10:00 UTC (6pm GMT+8 Malaysia time). Processes all users with favourites, fetches stock data from Yahoo Finance, runs AI analysis, builds HTML email, sends via Gmail integration. Manual trigger available via admin panel.
+8. **Daily email scheduler**: Runs at 10:00 UTC (6pm GMT+8 Malaysia time). Processes all users with favourites, fetches stock data from Yahoo Finance, runs AI analysis, builds HTML email, sends via Gmail integration. Manual trigger available via admin panel. Protected against duplicate runs via in-memory lock flag (acquired before any async DB call), in-memory date cache, DB-persisted `scheduler_last_run_date` with 3-retry save logic.
+
+9. **Admin watchlist management**: Admin can view and delete any user's favourite stocks from the Admin panel (Email tab → User Watchlists section). Endpoints: `GET /api/admin/user-favourites/:userId`, `DELETE /api/admin/user-favourites/:id`.
 
 ## External Dependencies
 

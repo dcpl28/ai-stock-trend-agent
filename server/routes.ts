@@ -1993,6 +1993,26 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
     }
   });
 
+  app.get("/api/admin/user-favourites/:userId", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const favourites = await storage.getFavourites(req.params.userId);
+      res.json(favourites);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch user favourites" });
+    }
+  });
+
+  app.delete("/api/admin/user-favourites/:id", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      await storage.adminRemoveFavourite(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to remove favourite" });
+    }
+  });
+
   app.get("/api/plan-pricing", async (_req: Request, res: Response) => {
     try {
       const plan5Price = await storage.getSetting("plan_5_price") || "5";
