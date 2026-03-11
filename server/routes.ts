@@ -1722,7 +1722,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
                 ((quote.fiftyTwoWeekHigh - currentPrice) /
                   quote.fiftyTwoWeekHigh) *
                 100;
-              if (pctFromHigh <= 3) {
+              if (pctFromHigh <= 10) {
                 matched = true;
                 reasons.push(
                   pctFromHigh < 0.5
@@ -1740,7 +1740,7 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
                 ((currentPrice - quote.fiftyTwoWeekLow) /
                   quote.fiftyTwoWeekLow) *
                 100;
-              if (pctFromLow <= 3) {
+              if (pctFromLow <= 10) {
                 matched = true;
                 reasons.push(
                   pctFromLow < 0.5
