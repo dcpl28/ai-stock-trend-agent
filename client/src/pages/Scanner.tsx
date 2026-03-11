@@ -29,6 +29,8 @@ export default function Scanner() {
   const [enabled, setEnabled] = useState(false);
   const [scanPage, setScanPage] = useState(1);
   const SCAN_PER_PAGE = 20;
+  const [minMarketCap, setMinMarketCap] = useState(1_000_000_000);
+  const [maxMarketCap, setMaxMarketCap] = useState(0);
   type SortKey = "symbol" | "name" | "price" | "changePercent" | "volume" | "marketCap";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -64,10 +66,12 @@ export default function Scanner() {
   const criteriaParam = selectedCriteria.join(",");
 
   const { data: results, isLoading, isFetching } = useQuery<ScanResult[]>({
-    queryKey: ["/api/scanner", market, scanType, criteriaParam, scanKey],
+    queryKey: ["/api/scanner", market, scanType, criteriaParam, minMarketCap, maxMarketCap, scanKey],
     queryFn: async () => {
       const params = new URLSearchParams({ market, type: scanType });
       if (criteriaParam) params.set("criteria", criteriaParam);
+      if (minMarketCap > 0) params.set("minMarketCap", String(minMarketCap));
+      if (maxMarketCap > 0) params.set("maxMarketCap", String(maxMarketCap));
       const res = await fetch(`/api/scanner?${params}`);
       if (!res.ok) throw new Error("Scan failed");
       return res.json();
@@ -176,7 +180,7 @@ export default function Scanner() {
               <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 block">{t("market")}</label>
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setMarket("US"); setEnabled(false); }}
+                  onClick={() => { setMarket("US"); setEnabled(false); setMinMarketCap(1_000_000_000); setMaxMarketCap(0); }}
                   className={`flex-1 py-2.5 text-xs uppercase tracking-widest font-medium rounded-lg transition-all cursor-pointer ${
                     market === "US"
                       ? "bg-primary/20 text-primary border border-primary/30"
@@ -187,7 +191,7 @@ export default function Scanner() {
                   {t("usMarket")}
                 </button>
                 <button
-                  onClick={() => { setMarket("MY"); setEnabled(false); }}
+                  onClick={() => { setMarket("MY"); setEnabled(false); setMinMarketCap(100_000_000); setMaxMarketCap(0); }}
                   className={`flex-1 py-2.5 text-xs uppercase tracking-widest font-medium rounded-lg transition-all cursor-pointer ${
                     market === "MY"
                       ? "bg-primary/20 text-primary border border-primary/30"
@@ -239,6 +243,95 @@ export default function Scanner() {
                   <TrendingUp className="w-3.5 h-3.5" />
                   {t("breakout")}
                 </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-white/5 pt-4">
+            <label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 block">{t("marketCapFilter")}</label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">{t("minMarketCap")}</span>
+                <div className="flex gap-1.5 flex-wrap">
+                  {(market === "US"
+                    ? [
+                        { label: "500M", value: 500_000_000 },
+                        { label: "1B", value: 1_000_000_000 },
+                        { label: "5B", value: 5_000_000_000 },
+                        { label: "10B", value: 10_000_000_000 },
+                        { label: "50B", value: 50_000_000_000 },
+                        { label: "100B", value: 100_000_000_000 },
+                      ]
+                    : [
+                        { label: "50M", value: 50_000_000 },
+                        { label: "100M", value: 100_000_000 },
+                        { label: "500M", value: 500_000_000 },
+                        { label: "1B", value: 1_000_000_000 },
+                        { label: "5B", value: 5_000_000_000 },
+                        { label: "10B", value: 10_000_000_000 },
+                      ]
+                  ).map(opt => (
+                    <button
+                      key={`min-${opt.value}`}
+                      onClick={() => { setMinMarketCap(opt.value); setEnabled(false); }}
+                      className={`px-3 py-1.5 text-[10px] uppercase tracking-widest font-medium rounded-md transition-all cursor-pointer ${
+                        minMarketCap === opt.value
+                          ? "bg-primary/20 text-primary border border-primary/30"
+                          : "bg-card/50 text-muted-foreground border border-white/5 hover:border-white/10"
+                      }`}
+                      data-testid={`button-min-mcap-${opt.label}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1">
+                <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">{t("maxMarketCap")}</span>
+                <div className="flex gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => { setMaxMarketCap(0); setEnabled(false); }}
+                    className={`px-3 py-1.5 text-[10px] uppercase tracking-widest font-medium rounded-md transition-all cursor-pointer ${
+                      maxMarketCap === 0
+                        ? "bg-primary/20 text-primary border border-primary/30"
+                        : "bg-card/50 text-muted-foreground border border-white/5 hover:border-white/10"
+                    }`}
+                    data-testid="button-max-mcap-nomax"
+                  >
+                    {t("noMax")}
+                  </button>
+                  {(market === "US"
+                    ? [
+                        { label: "1B", value: 1_000_000_000 },
+                        { label: "5B", value: 5_000_000_000 },
+                        { label: "10B", value: 10_000_000_000 },
+                        { label: "50B", value: 50_000_000_000 },
+                        { label: "100B", value: 100_000_000_000 },
+                        { label: "500B", value: 500_000_000_000 },
+                      ]
+                    : [
+                        { label: "100M", value: 100_000_000 },
+                        { label: "500M", value: 500_000_000 },
+                        { label: "1B", value: 1_000_000_000 },
+                        { label: "5B", value: 5_000_000_000 },
+                        { label: "10B", value: 10_000_000_000 },
+                        { label: "50B", value: 50_000_000_000 },
+                      ]
+                  ).map(opt => (
+                    <button
+                      key={`max-${opt.value}`}
+                      onClick={() => { setMaxMarketCap(opt.value); setEnabled(false); }}
+                      className={`px-3 py-1.5 text-[10px] uppercase tracking-widest font-medium rounded-md transition-all cursor-pointer ${
+                        maxMarketCap === opt.value
+                          ? "bg-primary/20 text-primary border border-primary/30"
+                          : "bg-card/50 text-muted-foreground border border-white/5 hover:border-white/10"
+                      }`}
+                      data-testid={`button-max-mcap-${opt.label}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

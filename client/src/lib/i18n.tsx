@@ -93,6 +93,10 @@ const translations = {
     rsiOverbought: "RSI Overbought (> 70)",
     allTimeLow: "All-Time Low",
     scanningAtl: "all-time lows",
+    marketCapFilter: "Market Cap",
+    minMarketCap: "Min",
+    maxMarketCap: "Max",
+    noMax: "No Max",
 
     // Analysis Panel
     marketSentiment: "Market Sentiment",
@@ -407,6 +411,10 @@ const translations = {
     rsiOverbought: "RSI 超买 (> 70)",
     allTimeLow: "历史新低",
     scanningAtl: "历史新低",
+    marketCapFilter: "市值",
+    minMarketCap: "最低",
+    maxMarketCap: "最高",
+    noMax: "无上限",
 
     marketSentiment: "市场情绪",
     aiConvictionScore: "AI 确信度评分 (%)",
@@ -710,6 +718,10 @@ const translations = {
     rsiOverbought: "RSI Terlebih Beli (> 70)",
     allTimeLow: "Paras Terendah",
     scanningAtl: "paras terendah",
+    marketCapFilter: "Permodalan Pasaran",
+    minMarketCap: "Minimum",
+    maxMarketCap: "Maksimum",
+    noMax: "Tiada Had",
 
     marketSentiment: "Sentimen Pasaran",
     aiConvictionScore: "Skor Keyakinan AI (%)",
