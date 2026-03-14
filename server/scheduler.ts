@@ -521,7 +521,7 @@ export function startScheduler() {
     const utcMinute = now.getUTCMinutes();
     const todayStr = now.toISOString().split("T")[0];
 
-    if (utcHour === 10 && utcMinute <= 5) {
+    if (utcHour === 10 && utcMinute <= 30) {
       if (isRunning) {
         console.log("[SCHEDULER] Already running, skipping duplicate trigger");
         return;
@@ -556,6 +556,8 @@ export function startScheduler() {
 
   schedulerInterval = setInterval(checkAndRun, 60 * 1000);
   console.log("[SCHEDULER] Checking every minute for 10:00 UTC trigger");
+
+  setTimeout(checkAndRun, 5000);
 }
 
 export function stopScheduler() {
