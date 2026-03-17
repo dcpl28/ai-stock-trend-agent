@@ -282,35 +282,64 @@ Return ONLY valid JSON, no markdown.`;
     let content = "";
     const aiConfig = getAIProvider();
 
-    if (aiConfig.type === "anthropic") {
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY!,
+    const providers: Array<() => Promise<string>> = [];
+
+    if (aiConfig.type === "openai") {
+      providers.push(async () => {
+        const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+        const response = await client.chat.completions.create({
+          model: process.env.OPENAI_MODEL || "gpt-5.2",
+          messages: [{ role: "user", content: prompt }],
+          max_completion_tokens: 1000,
+          temperature: 0.3,
+        });
+        return response.choices[0]?.message?.content || "{}";
       });
-      const response = await anthropic.messages.create({
-        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        temperature: 0.3,
-        messages: [{ role: "user", content: prompt }],
+    } else if (aiConfig.type === "anthropic") {
+      providers.push(async () => {
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+        const response = await anthropic.messages.create({
+          model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          temperature: 0.3,
+          messages: [{ role: "user", content: prompt }],
+        });
+        return response.content[0].type === "text" ? response.content[0].text : "{}";
       });
-      content =
-        response.content[0].type === "text" ? response.content[0].text : "{}";
-    } else if (aiConfig.type === "openai") {
-      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-      const response = await client.chat.completions.create({
-        model: process.env.OPENAI_MODEL || "gpt-5.2",
-        messages: [{ role: "user", content: prompt }],
-        max_completion_tokens: 1000,
-        temperature: 0.3,
+    }
+
+    if (process.env.ANTHROPIC_API_KEY && aiConfig.type !== "anthropic") {
+      providers.push(async () => {
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+        const response = await anthropic.messages.create({
+          model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          temperature: 0.3,
+          messages: [{ role: "user", content: prompt }],
+        });
+        return response.content[0].type === "text" ? response.content[0].text : "{}";
       });
-      content = response.choices[0]?.message?.content || "{}";
-    } else {
+    }
+
+    providers.push(async () => {
       const response = await replitOpenai.chat.completions.create({
         model: process.env.OPENAI_MODEL || "gpt-5.2",
         messages: [{ role: "user", content: prompt }],
         max_completion_tokens: 1000,
         temperature: 0.3,
       });
-      content = response.choices[0]?.message?.content || "{}";
+      return response.choices[0]?.message?.content || "{}";
+    });
+
+    for (let i = 0; i < providers.length; i++) {
+      try {
+        content = await providers[i]();
+        break;
+      } catch (providerErr: any) {
+        const isLast = i === providers.length - 1;
+        console.warn(`[SCHEDULER] AI provider ${i + 1}/${providers.length} failed for ${symbol}: ${providerErr.message?.substring(0, 100)}`);
+        if (isLast) throw providerErr;
+      }
     }
 
     const cleaned = content
