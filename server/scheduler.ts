@@ -547,44 +547,45 @@ export function startScheduler() {
   const checkAndRun = async () => {
     const now = new Date();
     const utcHour = now.getUTCHours();
-    const utcMinute = now.getUTCMinutes();
     const todayStr = now.toISOString().split("T")[0];
 
-    if (utcHour === 10 && utcMinute <= 30) {
-      if (isRunning) {
-        console.log("[SCHEDULER] Already running, skipping duplicate trigger");
-        return;
-      }
+    // Trigger any time from 10:00 UTC onwards (not just 10:00-10:30).
+    // Guards below prevent double-running within the same day.
+    if (utcHour < 10) return;
 
-      if (inMemoryLastRunDate === todayStr) return;
+    if (isRunning) {
+      console.log("[SCHEDULER] Already running, skipping duplicate trigger");
+      return;
+    }
 
-      isRunning = true;
-      inMemoryLastRunDate = todayStr;
+    if (inMemoryLastRunDate === todayStr) return;
 
-      const lastRunDate = await getLastRunDate();
-      if (lastRunDate === todayStr) {
-        isRunning = false;
-        return;
-      }
+    isRunning = true;
+    inMemoryLastRunDate = todayStr;
 
-      try {
-        await setLastRunDate(todayStr);
-        console.log("[SCHEDULER] Checking for expired subscriptions...");
-        await expireSubscriptions().catch((err) =>
-          console.error("[SCHEDULER] Expiry check error:", err),
-        );
-        console.log("[SCHEDULER] Triggering daily analysis at 10:00 UTC");
-        await runDailyAnalysis().catch((err) =>
-          console.error("[SCHEDULER] Unhandled error:", err),
-        );
-      } finally {
-        isRunning = false;
-      }
+    const lastRunDate = await getLastRunDate();
+    if (lastRunDate === todayStr) {
+      isRunning = false;
+      return;
+    }
+
+    try {
+      await setLastRunDate(todayStr);
+      console.log("[SCHEDULER] Checking for expired subscriptions...");
+      await expireSubscriptions().catch((err) =>
+        console.error("[SCHEDULER] Expiry check error:", err),
+      );
+      console.log(`[SCHEDULER] Triggering daily analysis at ${now.getUTCHours()}:${String(now.getUTCMinutes()).padStart(2,'0')} UTC`);
+      await runDailyAnalysis().catch((err) =>
+        console.error("[SCHEDULER] Unhandled error:", err),
+      );
+    } finally {
+      isRunning = false;
     }
   };
 
   schedulerInterval = setInterval(checkAndRun, 60 * 1000);
-  console.log("[SCHEDULER] Checking every minute for 10:00 UTC trigger");
+  console.log("[SCHEDULER] Checking every minute. Will run once daily after 10:00 UTC.");
 
   setTimeout(checkAndRun, 5000);
 }
