@@ -47,7 +47,7 @@ integrations = ["javascript_openai_ai_integrations:2.0.0", "google-mail:1.0.0", 
 [userenv]
 
 [userenv.shared]
-AI_PROVIDER = 'openai' #"replit" #openai or anthropic 
+AI_PROVIDER = "anthropic"
 OPENAI_MODEL = "gpt-5.4"
-ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+ANTHROPIC_MODEL = "claude-sonnet-4-6"
 #ANTHROPIC_API_KEY = ''
