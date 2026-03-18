@@ -558,19 +558,31 @@ export function startScheduler() {
       return;
     }
 
+    // Fast in-memory check (only set AFTER a successful run)
     if (inMemoryLastRunDate === todayStr) return;
 
     isRunning = true;
-    inMemoryLastRunDate = todayStr;
-
-    const lastRunDate = await getLastRunDate();
-    if (lastRunDate === todayStr) {
-      isRunning = false;
-      return;
-    }
 
     try {
+      // Query DB directly — do NOT use inMemoryLastRunDate here as it may be stale
+      let dbLastRunDate: string | null = null;
+      try {
+        dbLastRunDate = await storage.getSetting("scheduler_last_run_date");
+      } catch {
+        dbLastRunDate = null;
+      }
+
+      if (dbLastRunDate === todayStr) {
+        // Already ran today (another instance beat us), sync in-memory and exit
+        inMemoryLastRunDate = todayStr;
+        console.log("[SCHEDULER] Already ran today (DB check), skipping.");
+        return;
+      }
+
+      // Claim today's run: write to DB first, then set in-memory
       await setLastRunDate(todayStr);
+      inMemoryLastRunDate = todayStr;
+
       console.log("[SCHEDULER] Checking for expired subscriptions...");
       await expireSubscriptions().catch((err) =>
         console.error("[SCHEDULER] Expiry check error:", err),
