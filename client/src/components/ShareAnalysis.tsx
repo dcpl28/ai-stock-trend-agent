@@ -62,7 +62,6 @@ export function ShareAnalysisButton({ symbol, currentPrice, analysis, currency }
       const aboveLabel = t("above");
       const belowLabel = t("below");
       const levelLabel = t("level");
-      const trendIndicatorLabel = t("trendLabel");
 
       let y = 0;
       const pad = 32;
@@ -215,7 +214,6 @@ export function ShareAnalysisButton({ symbol, currentPrice, analysis, currency }
 
       const indicators = [
         { label: "MACD", value: analysis.indicators.macd.value, signal: analysis.indicators.macd.signal },
-        { label: trendIndicatorLabel, value: analysis.indicators.trend.value, signal: analysis.indicators.trend.signal },
         { label: supportLabel, value: `${currency} ${analysis.indicators.support.toFixed(2)}`, signal: levelLabel },
         { label: resistanceLabel, value: `${currency} ${analysis.indicators.resistance.toFixed(2)}`, signal: levelLabel },
         { label: "MA(20)", value: `${currency} ${analysis.indicators.ma20.toFixed(2)}`, signal: currentPrice > analysis.indicators.ma20 ? aboveLabel : belowLabel },

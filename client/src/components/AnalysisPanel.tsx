@@ -12,7 +12,6 @@ interface AnalysisData {
   indicators: {
     rsi: { value: number; signal: string };
     macd: { value: string; signal: string };
-    trend: { value: string; signal: string };
     support: number;
     resistance: number;
     ma20: number;
@@ -158,12 +157,6 @@ export function AnalysisPanel({
                   value: analysis.indicators.macd.value,
                   status: analysis.indicators.macd.signal,
                   colorType: analysis.indicators.macd.signal,
-                },
-                {
-                  label: t("trendLabel"),
-                  value: analysis.indicators.trend.value,
-                  status: analysis.indicators.trend.signal,
-                  colorType: analysis.indicators.trend.signal,
                 },
                 {
                   label: t("support"),
