@@ -213,11 +213,11 @@ export function ShareAnalysisButton({ symbol, currentPrice, analysis, currency }
       y += 80;
 
       const indicators = [
-        { label: "MACD", value: analysis.indicators.macd.value, signal: analysis.indicators.macd.signal },
-        { label: supportLabel, value: `${currency} ${analysis.indicators.support.toFixed(2)}`, signal: levelLabel },
-        { label: resistanceLabel, value: `${currency} ${analysis.indicators.resistance.toFixed(2)}`, signal: levelLabel },
-        { label: "MA(20)", value: `${currency} ${analysis.indicators.ma20.toFixed(2)}`, signal: currentPrice > analysis.indicators.ma20 ? aboveLabel : belowLabel },
-        { label: "MA(50)", value: `${currency} ${analysis.indicators.ma50.toFixed(2)}`, signal: currentPrice > analysis.indicators.ma50 ? aboveLabel : belowLabel },
+        { label: "MACD", value: analysis.indicators.macd?.value ?? "N/A", signal: analysis.indicators.macd?.signal ?? "N/A" },
+        { label: supportLabel, value: analysis.indicators.support != null ? `${currency} ${Number(analysis.indicators.support).toFixed(2)}` : "N/A", signal: levelLabel },
+        { label: resistanceLabel, value: analysis.indicators.resistance != null ? `${currency} ${Number(analysis.indicators.resistance).toFixed(2)}` : "N/A", signal: levelLabel },
+        { label: "MA(20)", value: analysis.indicators.ma20 != null ? `${currency} ${Number(analysis.indicators.ma20).toFixed(2)}` : "N/A", signal: currentPrice > (analysis.indicators.ma20 ?? 0) ? aboveLabel : belowLabel },
+        { label: "MA(50)", value: analysis.indicators.ma50 != null ? `${currency} ${Number(analysis.indicators.ma50).toFixed(2)}` : "N/A", signal: currentPrice > (analysis.indicators.ma50 ?? 0) ? aboveLabel : belowLabel },
       ];
 
       drawRoundedRect(pad, y, W - pad * 2, 40 + indicators.length * 28, 8, "rgba(255,255,255,0.03)", "rgba(255,255,255,0.06)");

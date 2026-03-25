@@ -148,39 +148,39 @@ export function AnalysisPanel({
               {[
                 {
                   label: "RSI (14)",
-                  value: analysis.indicators.rsi.value.toFixed(1),
-                  status: analysis.indicators.rsi.signal,
-                  colorType: analysis.indicators.rsi.signal,
+                  value: (analysis.indicators.rsi?.value ?? 0).toFixed(1),
+                  status: analysis.indicators.rsi?.signal ?? "N/A",
+                  colorType: analysis.indicators.rsi?.signal ?? "",
                 },
                 {
                   label: "MACD",
-                  value: analysis.indicators.macd.value,
-                  status: analysis.indicators.macd.signal,
-                  colorType: analysis.indicators.macd.signal,
+                  value: analysis.indicators.macd?.value ?? "N/A",
+                  status: analysis.indicators.macd?.signal ?? "N/A",
+                  colorType: analysis.indicators.macd?.signal ?? "",
                 },
                 {
                   label: t("support"),
-                  value: `${currency} ${analysis.indicators.support.toFixed(2)}`,
+                  value: analysis.indicators.support != null ? `${currency} ${Number(analysis.indicators.support).toFixed(2)}` : "N/A",
                   status: t("level"),
                   colorType: "Level",
                 },
                 {
                   label: t("resistance"),
-                  value: `${currency} ${analysis.indicators.resistance.toFixed(2)}`,
+                  value: analysis.indicators.resistance != null ? `${currency} ${Number(analysis.indicators.resistance).toFixed(2)}` : "N/A",
                   status: t("level"),
                   colorType: "Level",
                 },
                 {
                   label: "MA(20)",
-                  value: `${currency} ${analysis.indicators.ma20.toFixed(2)}`,
-                  status: currentPrice > analysis.indicators.ma20 ? t("above") : t("below"),
-                  colorType: currentPrice > analysis.indicators.ma20 ? "Above" : "Below",
+                  value: analysis.indicators.ma20 != null ? `${currency} ${Number(analysis.indicators.ma20).toFixed(2)}` : "N/A",
+                  status: currentPrice > (analysis.indicators.ma20 ?? 0) ? t("above") : t("below"),
+                  colorType: currentPrice > (analysis.indicators.ma20 ?? 0) ? "Above" : "Below",
                 },
                 {
                   label: "MA(50)",
-                  value: `${currency} ${analysis.indicators.ma50.toFixed(2)}`,
-                  status: currentPrice > analysis.indicators.ma50 ? t("above") : t("below"),
-                  colorType: currentPrice > analysis.indicators.ma50 ? "Above" : "Below",
+                  value: analysis.indicators.ma50 != null ? `${currency} ${Number(analysis.indicators.ma50).toFixed(2)}` : "N/A",
+                  status: currentPrice > (analysis.indicators.ma50 ?? 0) ? t("above") : t("below"),
+                  colorType: currentPrice > (analysis.indicators.ma50 ?? 0) ? "Above" : "Below",
                 },
               ].map((item, i) => (
                 <div
