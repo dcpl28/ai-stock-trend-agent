@@ -819,9 +819,10 @@ export async function registerRoutes(
         }));
 
       const meta = result.meta || {};
+      const isKlseMeta = yahooSymbol.endsWith(".KL") || meta.exchangeName === "KLS" || meta.exchangeName === "KLX";
       res.json({
         symbol: yahooSymbol,
-        currency: meta.currency || "USD",
+        currency: meta.currency || (isKlseMeta ? "MYR" : "USD"),
         exchange: meta.exchangeName || "",
         name: meta.shortName || meta.longName || yahooSymbol,
         regularMarketPrice: meta.regularMarketPrice,
@@ -865,7 +866,7 @@ export async function registerRoutes(
         fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
         fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
         averageVolume: quote.averageDailyVolume3Month,
-        currency: quote.currency,
+        currency: quote.currency || (yahooSymbol.endsWith(".KL") || quote.exchange === "KLS" ? "MYR" : "USD"),
         exchange: quote.exchange,
         marketState: quote.marketState,
       });
