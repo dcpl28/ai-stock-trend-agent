@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp, AlertTriangle, DollarSign, MessageCircle, CreditCard, RefreshCw, Star, ChevronDown, ChevronRight } from "lucide-react";
+import { Crown, UserPlus, Trash2, Edit2, Check, X, Loader2, ArrowLeft, Users, Shield, Ban, CheckCircle, Globe, Activity, FileText, Clock, Search, Calendar, BarChart3, TrendingUp, AlertTriangle, DollarSign, MessageCircle, CreditCard, RefreshCw, Star, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface UserEntry {
@@ -111,6 +111,9 @@ export default function AdminConfig() {
 
   const [allUserFavourites, setAllUserFavourites] = useState<Record<string, any[]>>({});
   const [expandedFavUser, setExpandedFavUser] = useState<string | null>(null);
+  const [addStockInputs, setAddStockInputs] = useState<Record<string, string>>({});
+  const [addingStock, setAddingStock] = useState<string | null>(null);
+  const [addStockError, setAddStockError] = useState<Record<string, string>>({});
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return users;
@@ -306,6 +309,34 @@ export default function AdminConfig() {
         fetchUserFavourites(userId);
       }
     } catch {}
+  };
+
+  const adminAddFavourite = async (userId: string) => {
+    const raw = (addStockInputs[userId] || "").trim().toUpperCase();
+    if (!raw) return;
+    // Normalise: MYX: → KLSE:
+    const symbol = raw.startsWith("MYX:") ? raw.replace("MYX:", "KLSE:") : raw;
+    const displayName = symbol.includes(":") ? symbol.split(":")[1] : symbol;
+    setAddingStock(userId);
+    setAddStockError(prev => ({ ...prev, [userId]: "" }));
+    try {
+      const res = await fetch(`/api/admin/user-favourites/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol, displayName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAddStockError(prev => ({ ...prev, [userId]: data.error || "Failed to add stock" }));
+      } else {
+        setAddStockInputs(prev => ({ ...prev, [userId]: "" }));
+        fetchUserFavourites(userId);
+      }
+    } catch {
+      setAddStockError(prev => ({ ...prev, [userId]: "Network error" }));
+    } finally {
+      setAddingStock(null);
+    }
   };
 
   const toggleFavUser = (userId: string) => {
@@ -1030,7 +1061,7 @@ export default function AdminConfig() {
                         {!allUserFavourites[user.id] ? (
                           <div className="text-[10px] text-muted-foreground/50 px-3 py-1"><Loader2 className="w-3 h-3 animate-spin inline mr-1" />Loading...</div>
                         ) : allUserFavourites[user.id].length === 0 ? (
-                          <div className="text-[10px] text-muted-foreground/50 px-3 py-1">No watchlist stocks</div>
+                          <div className="text-[10px] text-muted-foreground/50 px-3 py-1">No watchlist stocks yet</div>
                         ) : (
                           allUserFavourites[user.id].map((fav: any) => (
                             <div key={fav.id} className="flex items-center justify-between text-[11px] px-3 py-1.5 rounded-lg bg-background/20" data-testid={`row-admin-fav-${fav.id}`}>
@@ -1051,6 +1082,34 @@ export default function AdminConfig() {
                             </div>
                           ))
                         )}
+
+                        {/* Add stock input */}
+                        <div className="pt-1">
+                          <form
+                            onSubmit={(e) => { e.preventDefault(); adminAddFavourite(user.id); }}
+                            className="flex items-center gap-1.5"
+                          >
+                            <Input
+                              value={addStockInputs[user.id] || ""}
+                              onChange={(e) => setAddStockInputs(prev => ({ ...prev, [user.id]: e.target.value }))}
+                              placeholder="e.g. KLSE:MAYBANK or NVDA"
+                              className="h-7 text-[11px] bg-background/30 border-white/10 placeholder:text-muted-foreground/30"
+                              data-testid={`input-add-stock-${user.id}`}
+                            />
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={addingStock === user.id || !(addStockInputs[user.id] || "").trim()}
+                              className="h-7 px-2 text-[11px] cursor-pointer"
+                              data-testid={`button-add-stock-${user.id}`}
+                            >
+                              {addingStock === user.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                            </Button>
+                          </form>
+                          {addStockError[user.id] && (
+                            <p className="text-[10px] text-red-400 mt-1 px-1" data-testid={`error-add-stock-${user.id}`}>{addStockError[user.id]}</p>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

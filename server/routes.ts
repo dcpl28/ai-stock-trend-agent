@@ -1887,6 +1887,29 @@ IMPORTANT: The company profile must be about the EXACT company identified by the
     }
   });
 
+  app.post("/api/admin/user-favourites/:userId", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const { symbol, displayName } = req.body;
+      if (!symbol || !displayName) return res.status(400).json({ error: "Symbol and display name are required" });
+
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const maxFavourites = user.subscriptionPlan === "professional" ? 10 : user.subscriptionPlan === "essential" ? 5 : 10;
+      const count = await storage.getFavouriteCount(userId);
+      if (count >= maxFavourites) {
+        return res.status(400).json({ error: `Maximum of ${maxFavourites} stocks reached for this user` });
+      }
+
+      const favourite = await storage.addFavourite(userId, symbol, displayName);
+      res.json(favourite);
+    } catch (error: any) {
+      if (error.code === "23505") return res.status(400).json({ error: "Stock already in this user's watchlist" });
+      res.status(500).json({ error: "Failed to add favourite" });
+    }
+  });
+
   app.delete("/api/admin/user-favourites/:id", requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
