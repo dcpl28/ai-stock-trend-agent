@@ -549,6 +549,10 @@ export function startScheduler() {
     const utcHour = now.getUTCHours();
     const todayStr = now.toISOString().split("T")[0];
 
+    // Skip weekends (Saturday=6, Sunday=0)
+    const utcDay = now.getUTCDay();
+    if (utcDay === 0 || utcDay === 6) return;
+
     // Trigger any time from 10:00 UTC onwards (not just 10:00-10:30).
     // Guards below prevent double-running within the same day.
     if (utcHour < 10) return;
